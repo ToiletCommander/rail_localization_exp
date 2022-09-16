@@ -9,7 +9,7 @@ Reference:
 
 ## Coordinate Frame (Local)
 
-![Local Coordinate Diagram](local_axis.jpg)
+![Local Coordinate Diagram](static/local_axis.jpg)
 
 > Unit: Measured in meters + rads + seconds
 
@@ -37,7 +37,7 @@ roll-pitch-yaw convention often used in aerospace assumes that a vehicle's roll 
 
 $$R_{rpy}(\phi,\theta,\psi)=R_Z(\phi)R_Y(\theta)R_X(\psi)$$
 
-![Roll-Pitch-Yaw](roll-pitch-yaw.png)
+![Roll-Pitch-Yaw](static/roll-pitch-yaw.png)
 
 We will use this convention for our local coordinate frame, but note that there are other conventions in the form
 
@@ -47,7 +47,7 @@ the span of possible results from the convention must span the range of possible
 
 We can calculate $R_Z, R_Y, R_X$ seperately
 
-![Single Axis Rotation](single-axis-rotation.png)
+![Single Axis Rotation](static/single-axis-rotation.png)
 
 And we got
 
@@ -72,6 +72,7 @@ $$R_X(\phi) = \begin{bmatrix}
 
 
 Then,
+
 $$R_{rpy}(\phi,\theta,\psi)=\begin{bmatrix}
 c_1 c_2 & c_1 s_2 s_3 - s_1 c_3 & s_1 s_3 + c_1 s_2 c_3 \\
 s_1 c_2 & c_1 c_3 + s_1 s_2 s_3 & s_1 s_2 c_3 - c_1 s_3 \\
@@ -92,9 +93,9 @@ X and Y is the plane on the ground while Z is the vertical axis pointing up.
 For easier synchronization, in OpenVR tracking, our X is to the right, Y is to the front, and Z is up.
 
 ### Note how Vive Tracker's axes are defined:
-![Vive Tracker Axis](tracker_axis_by_role.png)
+![Vive Tracker Axis](static/tracker_axis_by_role.png)
 > Reference: https://github.com/kimsama/openvr_vive-trcker_exp
 
 Because of this, we will also need to re-define our Vive Tracker's axes
 
-![Redefined Vive Tracker Axis](redefined_tracker_axis.jpg)
+![Redefined Vive Tracker Axis](static/redefined_tracker_axis.jpg)

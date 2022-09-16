@@ -136,11 +136,16 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         
         localVelocity = np.concatenate([transformed_spaceVelocity_local,transformed_angularVelocity_local]).reshape((6,))
         
+        print("transformed coordinate position",transformed_global_position,transformed_global_rotation)
 
         ctime = time.time()
         if self.__lastLocalVelocityUpdate != 0:
             dt = ctime - self.__lastLocalVelocityUpdate
             self.__lastLocalAcceleration = (localVelocity - self.__lastLocalVelocity) / dt
+            for callback in self.__localAccelerationSubscribeList:
+                callback(self, self.__lastLocalAcceleration)
 
         self.__lastLocalVelocity = localVelocity
         self.__lastLocalVelocityUpdate = ctime
+        for callback in self.__localVelocitySubscribeList:
+            callback(self, localVelocity)
