@@ -25,6 +25,28 @@ def rotation_angle(rot_matrix : np.ndarray) -> typing.Tuple[float, float, float]
         np.arctan2(rot_matrix[1,0], rot_matrix[0,0])
     )
 
+def rotation_angle_from_quaternion(q) -> typing.Tuple[float,float,float]:
+    # https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    # roll (x-axis rotation)
+    sinr_cosp = 2 * (q[0] * q[1] + q[2] * q[3])
+    cosr_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2])
+    
+    roll = np.arctan2(sinr_cosp, cosr_cosp)
+
+    # pitch (y-axis rotation)
+    sinp = 2 * (q[0] * q[2] - q[3] * q[1])
+    pitch = 0
+    if (np.abs(sinp) >= 1):
+        pitch = np.copysign(np.pi / 2, sinp) # use 90 degrees if out of range
+    else:
+        pitch = np.arcsin(sinp)
+
+    # yaw (z-axis rotation)
+    siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2])
+    cosy_cosp = 1 - 2 * (q[2] * q[2] + q[3] * q[3])
+    yaw = np.arctan2(siny_cosp, cosy_cosp)
+
+    return (roll, pitch, yaw)
 
 def rotation_matrix(
     roll,

@@ -7,12 +7,19 @@ Reference:
 3. http://motion.cs.illinois.edu/RoboticSystems/3DRotations.html
 4. https://stackoverflow.com/questions/15022630/how-to-calculate-the-angle-from-rotation-matrix#comment40396622_15029416
 5. https://github.com/ikostrikov/walk_in_the_park/blob/main/real/robots/a1_robot_velocity_estimator.py#L89
+6. https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
 
 ## Coordinate Frame (Local)
 
 ![Local Coordinate Diagram](static/local_axis.jpg)
 
 > Unit: Measured in meters + rads + seconds
+
+
+Accelerometer Notes:
+X => Back
+Y => Right
+Z => Up
 
 ### X-Axis
 
@@ -100,3 +107,5 @@ For easier synchronization, in OpenVR tracking, our X is to the right, Y is to t
 Because of this, we will also need to re-define our Vive Tracker's axes
 
 ![Redefined Vive Tracker Axis](static/redefined_tracker_axis.jpg)
+
+
