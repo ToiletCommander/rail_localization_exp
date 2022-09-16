@@ -14,6 +14,18 @@ Or in other words: [x, y, z, roll, pitch, yaw]
 autoUpdate decides if any other variables should be used to update the current variable
 """
 
+"""
+Returns angX, angY, angZ
+"""
+def rotation_angle(rot_matrix : np.ndarray) -> typing.Tuple(float, float, float):
+    assert rot_matrix.shape == (3,3)
+    return (
+        np.arctan2(rot_matrix[2,1], rot_matrix[2,2]), 
+        np.arctan2(-rot_matrix[2,0], np.sqrt(rot_matrix[2,1]**2 + rot_matrix[2,2]**2)), 
+        np.arctan2(rot_matrix[1,0], rot_matrix[0,0])
+    )
+
+
 def rotation_matrix(
     roll,
     pitch,
@@ -124,7 +136,7 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
     def unsubscribeLocalAcceleration(self, callback : typing.Callable[[typing.Any, np.ndarray], None]) -> None:
         self.__localAccelerationSubscribeList.remove(callback)
 
-    def __call_local_velocity_update(self, new_local_velocity : np.ndarray) -> None:
+    def _call_local_velocity_update(self, new_local_velocity : np.ndarray) -> None:
         assert new_local_velocity.shape == (6,)
         
         ctime = time.time()
@@ -134,7 +146,7 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
         else:
             self.__local_velocity_updated(new_local_velocity, None, ctime, None, False)
         
-    def __call_local_acceleration_update(self, new_local_acceleration : np.ndarray) -> None:
+    def _call_local_acceleration_update(self, new_local_acceleration : np.ndarray) -> None:
         assert new_local_acceleration.shape == (6,)
         
         ctime = time.time()
@@ -213,7 +225,7 @@ class GlobalFrameEstimator:
         raise NotImplementedError
 
 class GlobalFrameEstimatorImpl(LocalFrameEstimator):
-    def __init__(self, name : str, autoUpdateLocation : bool = True, autoUpdateVelocity : bool = True, autoUpdateAcceleration : bool = True):
+    def __init__(self, name : str, autoUpdateLocation : bool = True, autoUpdateVelocity : bool = True, autoUpdateAcceleration : bool = True, autoUpdateLocalVelocity : bool = True, autoUpdateLocalAcceleration : bool = True):
         self.name = name
         self.__locationSubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
         self.__velocitySubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
@@ -224,6 +236,8 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         self.autoUpdateLocation = autoUpdateLocation
         self.autoUpdateVelocity = autoUpdateVelocity
         self.autoUpdateAcceleration = autoUpdateAcceleration
+        self.autoupdateLocalVelocity = autoUpdateLocalVelocity
+        self.autoUpdateLocalAcceleration = autoUpdateLocalAcceleration
 
         self.__lastLocationUpdate : float = 0
         self.__lastVelocityUpdate : float = 0
@@ -267,7 +281,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
     def unsubscribeLocalAcceleration(self, callback: typing.Callable[[typing.Any, np.ndarray], None]) -> None:
         self.__localAccelerationSubscribeList.remove(callback)
 
-    def __call_location_update(self, new_location : np.ndarray) -> None:
+    def _call_location_update(self, new_location : np.ndarray) -> None:
         assert new_location.shape == (6,)
         
         ctime = time.time()
@@ -277,7 +291,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         else:
             self.__location_updated(new_location, None, ctime, None, False, False)
         
-    def __call_velocity_update(self, new_velocity : np.ndarray) -> None:
+    def _call_velocity_update(self, new_velocity : np.ndarray) -> None:
         assert new_velocity.shape == (6,)
         
         ctime = time.time()
@@ -287,7 +301,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         else:
             self.__velocity_updated(new_velocity, None, ctime, None, False, False)
     
-    def __call_acceleration_update(self, new_acceleration : np.ndarray) -> None:
+    def _call_acceleration_update(self, new_acceleration : np.ndarray) -> None:
         assert new_acceleration.shape == (6,)
         
         ctime = time.time()
@@ -349,7 +363,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         for callback in self.__velocitySubscribeList:
             callback(self,new_velocity)
         
-        if self.__lastLocationUpdate != 0:
+        if self.__lastLocationUpdate != 0 and self.autoupdateLocalVelocity:
             self.__lastLocalVelocity = coordinate_transform_to_local(new_velocity, self.__lastLocation)
             for callback in self.__localVelocitySubsribeList:
                 callback(self,self.__lastLocalVelocity)
@@ -379,7 +393,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         for callback in self.__accelerationSubscribeList:
             callback(self,new_acceleration)
 
-        if self.__lastLocationUpdate != 0:
+        if self.__lastLocationUpdate != 0 and self.autoUpdateLocalAcceleration:
             self.__lastLocalAcceleration = coordinate_transform_to_local(new_acceleration, self.__lastLocation)
             for callback in self.__localAccelerationSubscribeList:
                 callback(self,self.__lastLocalAcceleration)
