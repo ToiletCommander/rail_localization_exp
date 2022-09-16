@@ -17,7 +17,7 @@ autoUpdate decides if any other variables should be used to update the current v
 """
 Returns angX, angY, angZ
 """
-def rotation_angle(rot_matrix : np.ndarray) -> typing.Tuple(float, float, float):
+def rotation_angle(rot_matrix : np.ndarray) -> typing.Tuple[float, float, float]:
     assert rot_matrix.shape == (3,3)
     return (
         np.arctan2(rot_matrix[2,1], rot_matrix[2,2]), 

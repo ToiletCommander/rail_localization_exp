@@ -6,6 +6,7 @@ Reference:
 2. Ilya's previous repository
 3. http://motion.cs.illinois.edu/RoboticSystems/3DRotations.html
 4. https://stackoverflow.com/questions/15022630/how-to-calculate-the-angle-from-rotation-matrix#comment40396622_15029416
+5. https://github.com/ikostrikov/walk_in_the_park/blob/main/real/robots/a1_robot_velocity_estimator.py#L89
 
 ## Coordinate Frame (Local)
 

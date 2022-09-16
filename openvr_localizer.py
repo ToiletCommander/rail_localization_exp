@@ -56,7 +56,7 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         self.__lastLocalVelocityUpdate = 0
     
     @classmethod
-    def getAvailableDeviceNameAndIndexes(vrSystem : openvr.IVRSystem) -> typing.List[typing.Tuple[int,str]]:
+    def getAvailableDeviceNameAndIndexes(cls,vrSystem : openvr.IVRSystem) -> typing.List[typing.Tuple[int,str]]:
         lst : typing.List[typing.Tuple[int,str]] = []
         for device_index in range(openvr.k_unMaxTrackedDeviceCount):
             is_connected = vrSystem.isTrackedDeviceConnected(device_index)
