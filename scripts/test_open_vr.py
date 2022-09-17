@@ -10,7 +10,7 @@ if __name__ == "__main__":
     
     device_index = None
     for (index,name) in available_devices:
-        if 'vr_controller_vive' in name:
+        if 'vr_tracker_vive' in name:
             device_index = index
             break
     
@@ -29,6 +29,6 @@ if __name__ == "__main__":
         print("Local Velocity",Tracker.getLocalVelocity())
         print("Local Acceleration",Tracker.getLocalAcceleration())
         print("")
-        time.sleep(0.1)
+        time.sleep(2)
     
     openvr.shutdown()

@@ -60,14 +60,15 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         lst : typing.List[typing.Tuple[int,str]] = []
         for device_index in range(openvr.k_unMaxTrackedDeviceCount):
             is_connected = vrSystem.isTrackedDeviceConnected(device_index)
-            if is_connected:
+            if not(is_connected):
                 continue
 
             device_name = vrSystem.getStringTrackedDeviceProperty(
                 device_index, 
-                openvr.Prop_TrackingSystemName_String
+                openvr.Prop_RenderModelName_String
             )
             lst.append((device_index, device_name))
+            
         return lst
     
     def update(self):
@@ -99,7 +100,7 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         vr_spaceVelocity = np.ctypeslib.as_array(tracked_info.vVelocity[:], shape=(3,))
         vr_angularVelocity = np.ctypeslib.as_array(tracked_info.vAngularVelocity[:],shape=(3,))
 
-        print("raw_data:", vr_pose, vr_spaceVelocity, vr_angularVelocity)
+        #print("raw_data:", vr_pose, vr_spaceVelocity, vr_angularVelocity)
 
 
         """
@@ -136,16 +137,16 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         
         localVelocity = np.concatenate([transformed_spaceVelocity_local,transformed_angularVelocity_local]).reshape((6,))
         
-        print("transformed coordinate position",transformed_global_position,transformed_global_rotation)
+        #print("transformed coordinate position",transformed_global_position,transformed_global_rotation)
 
         ctime = time.time()
         if self.__lastLocalVelocityUpdate != 0:
             dt = ctime - self.__lastLocalVelocityUpdate
-            self.__lastLocalAcceleration = (localVelocity - self.__lastLocalVelocity) / dt
-            for callback in self.__localAccelerationSubscribeList:
-                callback(self, self.__lastLocalAcceleration)
+            self._lastLocalAcceleration = (localVelocity - self._lastLocalVelocity) / dt
+            for callback in self._localAccelerationSubscribeList:
+                callback(self, self._lastLocalAcceleration)
 
-        self.__lastLocalVelocity = localVelocity
+        self._lastLocalVelocity = localVelocity
         self.__lastLocalVelocityUpdate = ctime
-        for callback in self.__localVelocitySubscribeList:
+        for callback in self._localVelocitySubscribeList:
             callback(self, localVelocity)

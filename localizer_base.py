@@ -25,8 +25,27 @@ def rotation_angle(rot_matrix : np.ndarray) -> typing.Tuple[float, float, float]
         np.arctan2(rot_matrix[1,0], rot_matrix[0,0])
     )
 
+# gives WXYZ quaternion
+# https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+def quaternion_from_rotation(roll, pitch, yaw) -> typing.Tuple[float,float,float,float]:
+    # Abbreviations for the various angular functions
+    cy = np.cos(yaw * 0.5);
+    sy = np.sin(yaw * 0.5);
+    cp = np.cos(pitch * 0.5);
+    sp = np.sin(pitch * 0.5);
+    cr = np.cos(roll * 0.5);
+    sr = np.sin(roll * 0.5);
+
+    w = cr * cp * cy + sr * sp * sy;
+    x = sr * cp * cy - cr * sp * sy;
+    y = cr * sp * cy + sr * cp * sy;
+    z = cr * cp * sy - sr * sp * cy;
+
+    return (w,x,y,z);
+
+# https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
 def rotation_angle_from_quaternion(q) -> typing.Tuple[float,float,float]:
-    # https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    
     # roll (x-axis rotation)
     sinr_cosp = 2 * (q[0] * q[1] + q[2] * q[3])
     cosr_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2])
@@ -59,11 +78,34 @@ def rotation_matrix(
     s1 = np.sin(roll)
     s2 = np.sin(pitch)
     s3 = np.sin(yaw)
+
+    R_Z = np.array([
+        [c3, -s3, 0],
+        [s3 , c3, 0],
+        [0, 0, 1]
+    ])
+
+    R_Y = np.array([
+        [c2, 0, s2],
+        [0 ,1 ,0],
+        [-s2, 0, c2]
+    ])
+
+    R_X = np.array([
+        [1, 0, 0],
+        [0, c1, -s1],
+        [0, s1, c1]
+    ])
+    
+    return (R_Z @ R_Y @ R_X)
+
+    """
     return np.array([
         [c1*c2, c1*s2*s3 - c3*s1, s1*s3 + c1*c3*s2],
         [c2*s1, c1*c3 + s1*s2*s3, c3*s1*s2 - c1*s3],
         [s2, c2*s3, c2*c3]
     ])
+    """
 
 def rotation_matrix_inverse(
     roll,
@@ -249,11 +291,11 @@ class GlobalFrameEstimator:
 class GlobalFrameEstimatorImpl(LocalFrameEstimator):
     def __init__(self, name : str, autoUpdateLocation : bool = True, autoUpdateVelocity : bool = True, autoUpdateAcceleration : bool = True, autoUpdateLocalVelocity : bool = True, autoUpdateLocalAcceleration : bool = True):
         self.name = name
-        self.__locationSubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
-        self.__velocitySubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
-        self.__accelerationSubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
-        self.__localVelocitySubsribeList : typing.List[typing.Callable[[LocalFrameEstimator,np.ndarray],None]] = []
-        self.__localAccelerationSubscribeList : typing.List[typing.Callable[[LocalFrameEstimator,np.ndarray],None]] = []
+        self._locationSubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
+        self._velocitySubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
+        self._accelerationSubscribeList : typing.List[typing.Callable[[GlobalFrameEstimator,np.ndarray],None]] = []
+        self._localVelocitySubscribeList : typing.List[typing.Callable[[LocalFrameEstimator,np.ndarray],None]] = []
+        self._localAccelerationSubscribeList : typing.List[typing.Callable[[LocalFrameEstimator,np.ndarray],None]] = []
         
         self.autoUpdateLocation = autoUpdateLocation
         self.autoUpdateVelocity = autoUpdateVelocity
@@ -267,41 +309,41 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         self.__lastAcceleration : np.ndarray = np.zeros(6)
         self.__lastVelocity : np.ndarray = np.zeros(6)
         self.__lastLocation : np.ndarray = np.zeros(6)
-        self.__lastLocalVelocity : typing.Optional[np.ndarray] = None
-        self.__lastLocalAcceleration : typing.Optional[np.ndarray] = None
+        self._lastLocalVelocity : typing.Optional[np.ndarray] = None
+        self._lastLocalAcceleration : typing.Optional[np.ndarray] = None
 
     def __str__(self) -> str:
         return self.name + "(GlobalFrameEstimatorImpl)"
     
     def subscribe_location(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
-        self.__locationSubscribeList.append(callback)
+        self._locationSubscribeList.append(callback)
     
     def unsubscribe_location(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
-        self.__locationSubscribeList.remove(callback)
+        self._locationSubscribeList.remove(callback)
     
     def subscribe_velocity(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
-        self.__velocitySubscribeList.append(callback)
+        self._velocitySubscribeList.append(callback)
     
     def unsubscribe_velocity(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
-        self.__velocitySubscribeList.remove(callback)
+        self._velocitySubscribeList.remove(callback)
 
     def subscribe_acceleration(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
-        self.__accelerationSubscribeList.append(callback)
+        self._accelerationSubscribeList.append(callback)
     
     def unsubscribe_acceleration(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
-        self.__accelerationSubscribeList.remove(callback)
+        self._accelerationSubscribeList.remove(callback)
     
     def subscribeLocalVelocity(self, callback: typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localVelocitySubsribeList.append(callback)
+        self._localVelocitySubscribeList.append(callback)
     
     def unsubscribeLocalVelocity(self, callback: typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localVelocitySubsribeList.remove(callback)
+        self._localVelocitySubscribeList.remove(callback)
 
     def subscribeLocalAcceleration(self, callback: typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localAccelerationSubscribeList.append(callback)
+        self._localAccelerationSubscribeList.append(callback)
     
     def unsubscribeLocalAcceleration(self, callback: typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localAccelerationSubscribeList.remove(callback)
+        self._localAccelerationSubscribeList.remove(callback)
 
     def _call_location_update(self, new_location : np.ndarray) -> None:
         assert new_location.shape == (6,)
@@ -348,7 +390,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
                 try_update_acceleration = try_update_acceleration
             )
         
-        for callback in self.__locationSubscribeList:
+        for callback in self._locationSubscribeList:
             callback(self,new_location)
     
     def __velocity_updated(self,new_velocity : np.ndarray, old_velocity : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_location : bool = True, try_update_acceleration : bool = True) -> None:
@@ -382,13 +424,13 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
                 try_update_acceleration = False
             )
         
-        for callback in self.__velocitySubscribeList:
+        for callback in self._velocitySubscribeList:
             callback(self,new_velocity)
         
         if self.__lastLocationUpdate != 0 and self.autoupdateLocalVelocity:
-            self.__lastLocalVelocity = coordinate_transform_to_local(new_velocity, self.__lastLocation)
-            for callback in self.__localVelocitySubsribeList:
-                callback(self,self.__lastLocalVelocity)
+            self._lastLocalVelocity = coordinate_transform_to_local(new_velocity, self.__lastLocation)
+            for callback in self._localVelocitySubscribeList:
+                callback(self,self._lastLocalVelocity)
 
 
     def __acceleration_updated(self,new_acceleration : np.ndarray, old_acceleration : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_location : bool = True, try_update_velocity : bool = True) -> None:
@@ -412,13 +454,13 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
                 try_update_acceleration = False
             )
         
-        for callback in self.__accelerationSubscribeList:
+        for callback in self._accelerationSubscribeList:
             callback(self,new_acceleration)
 
         if self.__lastLocationUpdate != 0 and self.autoUpdateLocalAcceleration:
-            self.__lastLocalAcceleration = coordinate_transform_to_local(new_acceleration, self.__lastLocation)
-            for callback in self.__localAccelerationSubscribeList:
-                callback(self,self.__lastLocalAcceleration)
+            self._lastLocalAcceleration = coordinate_transform_to_local(new_acceleration, self.__lastLocation)
+            for callback in self._localAccelerationSubscribeList:
+                callback(self,self._lastLocalAcceleration)
         
     def getLocation(self) -> typing.Optional[np.ndarray]:
         return self.__lastLocation if self.__lastLocationUpdate != 0 else None
@@ -430,7 +472,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         return self.__lastAcceleration if self.__lastAccelerationUpdate != 0 else None
     
     def getLocalVelocity(self) -> typing.Optional[np.ndarray]:
-        return self.__lastLocalVelocity
+        return self._lastLocalVelocity
     
     def getLocalAcceleration(self) -> typing.Optional[np.ndarray]:
-        return self.__lastLocalAcceleration
+        return self._lastLocalAcceleration

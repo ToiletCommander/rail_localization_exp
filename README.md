@@ -19,7 +19,11 @@ Reference:
 Accelerometer Notes:
 X => Back
 Y => Right
-Z => Up
+Z => Down
+
+Roation => Same as accelerometer, the positive angle is counter-clockwise looking at the very tip of the axis to the origin
+
+Looks like its very very noisy... $2m/s^2$ acceleration with no movement at all...
 
 ### X-Axis
 
@@ -80,6 +84,8 @@ $$R_X(\phi) = \begin{bmatrix}
 
 
 Then,
+
+> This might be incorrect!
 
 $$R_{rpy}(\phi,\theta,\psi)=\begin{bmatrix}
 c_1 c_2 & c_1 s_2 s_3 - s_1 c_3 & s_1 s_3 + c_1 s_2 c_3 \\

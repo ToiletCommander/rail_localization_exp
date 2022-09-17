@@ -7,6 +7,7 @@ import math
 import multiprocessing
 import os
 import re
+import sys
 import time
 import pybullet
 
@@ -32,6 +33,7 @@ _robot_interface.send_command(np.zeros(60, dtype=np.float32))
 #pybullet_client = pybullet.connect(pybullet.GUI)
 
 while(True):
+    sys.stdout.flush()
     state = _robot_interface.receive_observation()
     _raw_state = state
 
@@ -39,7 +41,7 @@ while(True):
 
     
     q = state.imu.quaternion
-    print('imu',state.imu, 'quaternion', q)
+    #print('imu',state.imu, 'quaternion', q)
 
     # Convert quaternion from wxyz to xyzw, which is default for Pybullet.
     _base_orientation = np.array([q[1], q[2], q[3], q[0]])
@@ -59,10 +61,13 @@ while(True):
         [motor.temperature for motor in state.motorState[:12]])
     
     rot_ang = rotation_angle_from_quaternion(q)
+    print("Quaternion(wxyz)",q,"Ang",rot_ang)
     rot_mat = rotation_matrix(*rot_ang) #pybullet_client.getMatrixFromQuaternion(_base_orientation)
     
-    rot_mat = np.array(rot_mat).reshape((3, 3))
-    calibrated_acc = _accelerometer_reading + np.linalg.inv(rot_mat).dot(
-            np.array([0., 0., -9.8]))
+    #rot_mat = np.array(rot_mat).reshape((3, 3))
+    print(rot_mat)
+    calibrated_acc = _accelerometer_reading + np.linalg.inv(rot_mat) @ np.array([0., 0., -9.8])
+
+    print("accel_cal",calibrated_acc)
 
     time.sleep(0.2)
