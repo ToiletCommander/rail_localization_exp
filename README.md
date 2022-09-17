@@ -8,6 +8,7 @@ Reference:
 4. https://stackoverflow.com/questions/15022630/how-to-calculate-the-angle-from-rotation-matrix#comment40396622_15029416
 5. https://github.com/ikostrikov/walk_in_the_park/blob/main/real/robots/a1_robot_velocity_estimator.py#L89
 6. https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+7. https://www.trossenrobotics.com/Shared/XSeries/A1SoftwareGuidev2.0-en.pdf
 
 ## Coordinate Frame (Local)
 
