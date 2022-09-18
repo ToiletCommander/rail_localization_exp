@@ -17,7 +17,7 @@ struct HmdMatrix34_t
 """
 
 """
-But we have
+But we have (global frame)
 +x is to the right
 +y is forward
 +z is up
@@ -150,3 +150,23 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         self.__lastLocalVelocityUpdate = ctime
         for callback in self._localVelocitySubscribeList:
             callback(self, localVelocity)
+
+    @classmethod
+    def getOpenVRTrackerFromViveTracker() -> typing.Optional[typing.Any]:
+        vrSys = openvr.init(openvr.VRApplication_Other)
+        available_devices = __class__.getAvailableDeviceNameAndIndexes(vrSys)
+        
+        device_index = None
+        for (index,name) in available_devices:
+            if 'vr_tracker_vive' in name:
+                device_index = index
+                break
+        
+        if device_index is None:
+            return None
+            
+        Tracker = __class__(vrSys, device_index)
+    
+    @classmethod
+    def terminateOpenVRSystem():
+        openvr.shutdown()

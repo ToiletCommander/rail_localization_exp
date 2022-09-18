@@ -112,7 +112,33 @@ def rotation_matrix_inverse(
     pitch,
     yaw
 ) -> np.ndarray:
-    return np.linalg.inv(rotation_matrix(roll, pitch, yaw))
+    #return np.linalg.inv(rotation_matrix(roll, pitch, yaw))
+    c1 = np.cos(-roll)
+    c2 = np.cos(-pitch)
+    c3 = np.cos(-yaw)
+    s1 = np.sin(-roll)
+    s2 = np.sin(-pitch)
+    s3 = np.sin(-yaw)
+
+    R_Z = np.array([
+        [c3, -s3, 0],
+        [s3 , c3, 0],
+        [0, 0, 1]
+    ])
+
+    R_Y = np.array([
+        [c2, 0, s2],
+        [0 ,1 ,0],
+        [-s2, 0, c2]
+    ])
+
+    R_X = np.array([
+        [1, 0, 0],
+        [0, c1, -s1],
+        [0, s1, c1]
+    ])
+    
+    return (R_X @ R_Y @ R_Z)
 
 def coordinate_transform_to_global(
     to_transform: np.ndarray,
@@ -476,3 +502,97 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
     
     def getLocalAcceleration(self) -> typing.Optional[np.ndarray]:
         return self._lastLocalAcceleration
+
+class LocalCoordinateTransformedEstimatorImpl(LocalFrameEstimator):
+
+    @classmethod
+    def generateTransformMatrices(newX : np.ndarray, newY : np.ndarray, newZ : np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+        assert newX.shape == (3,) and newY.shape == (3,) and newZ.shape == (3,)
+        
+        newX_unit = newX / np.linalg.norm(newX)
+        newY_unit = newY / np.linalg.norm(newY)
+        newZ_unit = newZ / np.linalg.norm(newZ)
+
+        toOriginalFrameMatrix = np.hstack([
+            newX.reshape((3,1)),
+            newY.reshape((3,1)),
+            newZ.reshape((3,1))
+        ])
+
+        toNewFrameMatrix = np.linalg.inv(toOriginalFrameMatrix)
+
+        toOriginalFrameMatrixUnit = np.hstack([
+            newX_unit.reshape((3,1)),
+            newY_unit.reshape((3,1)),
+            newZ_unit.reshape((3,1))
+        ])
+
+        toNewFrameMatrixUnit = np.linalg.inv(toOriginalFrameMatrixUnit)
+
+        return toOriginalFrameMatrix, toNewFrameMatrix, toOriginalFrameMatrixUnit, toNewFrameMatrixUnit
+
+
+    def __init__(
+        self, 
+        base : LocalFrameEstimator, 
+        newX : np.ndarray,
+        newY : np.ndarray,
+        newZ : np.ndarray
+    ):
+        assert newX.shape == (3,) and newY.shape == (3,) and newZ.shape == (3,)
+        self.__newX = newX
+        self.__newY = newY
+        self.__newZ = newZ
+
+        self.__calcNewTransformMat()
+    
+    def __calcNewTransformMat(self):
+        (self.__toOriginalFrameMat, self.__toNewFrameMat, self.__toOriginalFrameMatUnit, self.__toNewFrameMatUnit) : typing.Tuple[np.ndarray,np.ndarray, np.ndarray,np.ndarray] = __class__.generateTransformMatrices(self.__newX, self.__newY, self.__newZ)
+    
+
+    def getNewX(self):
+        return self.__newX
+    
+    def getNewY(self):
+        return self.__newY
+    
+    def getNewZ(self):
+        return self.__newZ
+    
+    def setNewX(self, newX: np.ndarray):
+        assert newX.shape == (3,)
+
+        self.__newX = newX
+        self.__calcNewTransformMat()
+
+    def setNewY(self, newY: np.ndarray):
+        assert newY.shape == (3,)
+
+        self.__newY = newY
+        self.__calcNewTransformMat()
+
+    def setNewZ(self, newZ: np.ndarray):
+        assert newZ.shape == (3,)
+
+        self.__newZ = newZ
+        self.__calcNewTransformMat()
+
+    def getLocalAcceleration(self) -> typing.Optional[np.ndarray]:
+        superAcc = super().getLocalAcceleration()
+        if superAcc is None:
+            return None
+        else:
+            return np.concatenate(
+                self.__toNewFrameMat @ superAcc[:3].reshape((3,1)),
+                self.__toNewFrameMatUnit @ superAcc[3:].reshape((3,1))
+            ).reshape((6,))
+    
+    def getLocalVelocity(self) -> typing.Optional[np.ndarray]:
+        superVel = super().getLocalVelocity()
+        if superVel is None:
+            return None
+        else:
+            return np.concatenate(
+                self.__toNewFrameMat @ superVel[:3].reshape((3,1)),
+                self.__toNewFrameMatUnit @ superVel[3:].reshape((3,1))
+            ).reshape((6,))
