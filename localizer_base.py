@@ -203,87 +203,87 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
         self.autoUpdateVelocity = autoUpdateVelocity
         self.autoUpdateAcceleration = autoUpdateAcceleration
 
-        self.__localVelocitySubscribeList : typing.List[typing.Callable[[LocalFrameEstimator, np.ndarray], None]] = []
-        self.__localAccelerationSubscribeList : typing.List[typing.Callable[[LocalFrameEstimator, np.ndarray], None]] = []
+        self._localVelocitySubscribeList : typing.List[typing.Callable[[LocalFrameEstimator, np.ndarray], None]] = []
+        self._localAccelerationSubscribeList : typing.List[typing.Callable[[LocalFrameEstimator, np.ndarray], None]] = []
 
-        self.__lastLocalVelocity : np.ndarray = np.zeros(6)
-        self.__lastLocalVelocityUpdate : float = 0
-        self.__lastLocalAcceleration : np.ndarray = np.zeros(6)
-        self.__lastLocalAccelerationUpdate : float = 0
+        self._lastLocalVelocity : np.ndarray = np.zeros(6)
+        self._lastLocalVelocityUpdate : float = 0
+        self._lastLocalAcceleration : np.ndarray = np.zeros(6)
+        self._lastLocalAccelerationUpdate : float = 0
     
     def __str__(self) -> str:
         return self.name + "(LocalFrameEstimatorImpl)"
 
     def subscribeLocalVelocity(self, callback : typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localVelocitySubscribeList.append(callback)
+        self._localVelocitySubscribeList.append(callback)
     
     def subscribeLocalAcceleration(self, callback : typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localAccelerationSubscribeList.append(callback)
+        self._localAccelerationSubscribeList.append(callback)
     
     def unsubscribeLocalVelocity(self, callback : typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localVelocitySubscribeList.remove(callback)
+        self._localVelocitySubscribeList.remove(callback)
     
     def unsubscribeLocalAcceleration(self, callback : typing.Callable[[typing.Any, np.ndarray], None]) -> None:
-        self.__localAccelerationSubscribeList.remove(callback)
+        self._localAccelerationSubscribeList.remove(callback)
 
     def _call_local_velocity_update(self, new_local_velocity : np.ndarray) -> None:
         assert new_local_velocity.shape == (6,)
         
         ctime = time.time()
-        if self.__lastLocalVelocityUpdate != 0:
-            dt = ctime - self.__lastLocalVelocityUpdate
-            self.__local_velocity_updated(new_local_velocity, self.__lastLocalVelocity, ctime, dt, True)
+        if self._lastLocalVelocityUpdate != 0:
+            dt = ctime - self._lastLocalVelocityUpdate
+            self._local_velocity_updated(new_local_velocity, self._lastLocalVelocity, ctime, dt, True)
         else:
-            self.__local_velocity_updated(new_local_velocity, None, ctime, None, False)
+            self._local_velocity_updated(new_local_velocity, None, ctime, None, False)
         
     def _call_local_acceleration_update(self, new_local_acceleration : np.ndarray) -> None:
         assert new_local_acceleration.shape == (6,)
         
         ctime = time.time()
-        if self.__lastLocalAccelerationUpdate != 0:
-            dt = ctime - self.__lastLocalAccelerationUpdate
-            self.__local_acceleration_updated(new_local_acceleration, self.__lastLocalAcceleration, ctime, dt, True)
+        if self._lastLocalAccelerationUpdate != 0:
+            dt = ctime - self._lastLocalAccelerationUpdate
+            self._local_acceleration_updated(new_local_acceleration, self._lastLocalAcceleration, ctime, dt, True)
         else:
-            self.__local_acceleration_updated(new_local_acceleration, None, ctime, None, True)
+            self._local_acceleration_updated(new_local_acceleration, None, ctime, None, True)
     
-    def __local_velocity_updated(self, new_local_velocity : np.ndarray, old_local_velocity : typing.Optional[np.ndarray], ctime : float, dt : float, try_update_local_acceleration : bool = True) -> None:
-        self.__lastLocalVelocity = new_local_velocity
-        self.__lastLocalVelocityUpdate = ctime
+    def _local_velocity_updated(self, new_local_velocity : np.ndarray, old_local_velocity : typing.Optional[np.ndarray], ctime : float, dt : float, try_update_local_acceleration : bool = True) -> None:
+        self._lastLocalVelocity = new_local_velocity
+        self._lastLocalVelocityUpdate = ctime
 
         if try_update_local_acceleration and self.autoUpdateAcceleration and (old_local_velocity is not None):
             acceleration = (new_local_velocity - old_local_velocity) / dt
-            self.__local_acceleration_updated(
+            self._local_acceleration_updated(
                 acceleration, 
-                self.__lastLocalAcceleration, 
+                self._lastLocalAcceleration, 
                 ctime, 
-                (ctime - self.__lastLocalAccelerationUpdate) if self.__lastLocalAccelerationUpdate != 0 else None, 
+                (ctime - self._lastLocalAccelerationUpdate) if self._lastLocalAccelerationUpdate != 0 else None, 
                 False
             )
         
-        for callback in self.__localVelocitySubscribeList:
+        for callback in self._localVelocitySubscribeList:
             callback(self, new_local_velocity)
 
     
-    def __local_acceleration_updated(self, new_local_acceleration : np.ndarray, old_local_acceleration : typing.Optional[np.ndarray], ctime : float, dt : float, try_update_local_velocity : bool = True) -> None:
-        self.__lastLocalAcceleration = new_local_acceleration
-        self.__lastLocalAccelerationUpdate = ctime
+    def _local_acceleration_updated(self, new_local_acceleration : np.ndarray, old_local_acceleration : typing.Optional[np.ndarray], ctime : float, dt : float, try_update_local_velocity : bool = True) -> None:
+        self._lastLocalAcceleration = new_local_acceleration
+        self._lastLocalAccelerationUpdate = ctime
 
-        if try_update_local_velocity and self.autoUpdateVelocity and self.__lastLocalVelocityUpdate != 0:
+        if try_update_local_velocity and self.autoUpdateVelocity and self._lastLocalVelocityUpdate != 0:
             velocity = np.zeros((6,))
             if old_local_acceleration is not None:
-                velocity = self.__lastLocalVelocity + (new_local_acceleration + old_local_acceleration) / 2.0 * dt
+                velocity = self._lastLocalVelocity + (new_local_acceleration + old_local_acceleration) / 2.0 * dt
             else:
-                velocity = self.__lastLocalVelocity + new_local_acceleration * dt
-            self.__local_velocity_updated(velocity, self.__lastLocalVelocity, ctime, ctime - self.__lastLocalVelocityUpdate, False)
+                velocity = self._lastLocalVelocity + new_local_acceleration * dt
+            self._local_velocity_updated(velocity, self._lastLocalVelocity, ctime, ctime - self._lastLocalVelocityUpdate, False)
 
-        for callback in self.__localAccelerationSubscribeList:
+        for callback in self._localAccelerationSubscribeList:
             callback(self, new_local_acceleration)
         
     def getLocalVelocity(self) -> typing.Optional[np.ndarray]:
-        return self.__lastLocalVelocity if self.__lastLocalVelocityUpdate != 0 else None
+        return self._lastLocalVelocity if self._lastLocalVelocityUpdate != 0 else None
     
     def getLocalAcceleration(self) -> typing.Optional[np.ndarray]:
-        return self.__lastLocalAcceleration if self.__lastLocalAccelerationUpdate != 0 else None
+        return self._lastLocalAcceleration if self._lastLocalAccelerationUpdate != 0 else None
 
 
 class GlobalFrameEstimator:
@@ -329,12 +329,12 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         self.autoupdateLocalVelocity = autoUpdateLocalVelocity
         self.autoUpdateLocalAcceleration = autoUpdateLocalAcceleration
 
-        self.__lastLocationUpdate : float = 0
-        self.__lastVelocityUpdate : float = 0
-        self.__lastAccelerationUpdate : float = 0
-        self.__lastAcceleration : np.ndarray = np.zeros(6)
-        self.__lastVelocity : np.ndarray = np.zeros(6)
-        self.__lastLocation : np.ndarray = np.zeros(6)
+        self._lastLocationUpdate : float = 0
+        self._lastVelocityUpdate : float = 0
+        self._lastAccelerationUpdate : float = 0
+        self._lastAcceleration : np.ndarray = np.zeros(6)
+        self._lastVelocity : np.ndarray = np.zeros(6)
+        self._lastLocation : np.ndarray = np.zeros(6)
         self._lastLocalVelocity : typing.Optional[np.ndarray] = None
         self._lastLocalAcceleration : typing.Optional[np.ndarray] = None
 
@@ -375,43 +375,43 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         assert new_location.shape == (6,)
         
         ctime = time.time()
-        if self.__lastLocationUpdate != 0:
-            dt = ctime - self.__lastLocationUpdate
-            self.__location_updated(new_location, self.__lastLocation, ctime, dt, True, True)
+        if self._lastLocationUpdate != 0:
+            dt = ctime - self._lastLocationUpdate
+            self._location_updated(new_location, self._lastLocation, ctime, dt, True, True)
         else:
-            self.__location_updated(new_location, None, ctime, None, False, False)
+            self._location_updated(new_location, None, ctime, None, False, False)
         
     def _call_velocity_update(self, new_velocity : np.ndarray) -> None:
         assert new_velocity.shape == (6,)
         
         ctime = time.time()
-        if self.__lastVelocityUpdate != 0:
-            dt = ctime - self.__lastVelocityUpdate
-            self.__velocity_updated(new_velocity, self.__lastVelocity, ctime, dt, True, True)
+        if self._lastVelocityUpdate != 0:
+            dt = ctime - self._lastVelocityUpdate
+            self._velocity_updated(new_velocity, self._lastVelocity, ctime, dt, True, True)
         else:
-            self.__velocity_updated(new_velocity, None, ctime, None, False, False)
+            self._velocity_updated(new_velocity, None, ctime, None, False, False)
     
     def _call_acceleration_update(self, new_acceleration : np.ndarray) -> None:
         assert new_acceleration.shape == (6,)
         
         ctime = time.time()
-        if self.__lastAccelerationUpdate != 0:
-            dt = ctime - self.__lastAccelerationUpdate
-            self.__acceleration_updated(new_acceleration, self.__lastAcceleration, ctime, dt, True, True)
+        if self._lastAccelerationUpdate != 0:
+            dt = ctime - self._lastAccelerationUpdate
+            self._acceleration_updated(new_acceleration, self._lastAcceleration, ctime, dt, True, True)
         else:
-            self.__acceleration_updated(new_acceleration, None, ctime, None, False, False)
+            self._acceleration_updated(new_acceleration, None, ctime, None, False, False)
     
-    def __location_updated(self,new_location : np.ndarray, old_location : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_velocity: bool = True, try_update_acceleration : bool = True) -> None:
-        self.__lastLocation = new_location
-        self.__lastLocationUpdate = time
+    def _location_updated(self,new_location : np.ndarray, old_location : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_velocity: bool = True, try_update_acceleration : bool = True) -> None:
+        self._lastLocation = new_location
+        self._lastLocationUpdate = time
         
         if try_update_velocity and (old_location is not None) and self.autoUpdateVelocity:
             velocity = (new_location - old_location) / dt
-            self.__velocity_updated(
+            self._velocity_updated(
                 velocity, 
-                self.__lastVelocity, 
+                self._lastVelocity, 
                 time, 
-                (time - self.__lastVelocityUpdate) if self.__lastVelocityUpdate != 0 else None, 
+                (time - self._lastVelocityUpdate) if self._lastVelocityUpdate != 0 else None, 
                 try_update_location = False, 
                 try_update_acceleration = try_update_acceleration
             )
@@ -419,33 +419,33 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         for callback in self._locationSubscribeList:
             callback(self,new_location)
     
-    def __velocity_updated(self,new_velocity : np.ndarray, old_velocity : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_location : bool = True, try_update_acceleration : bool = True) -> None:
-        self.__lastVelocity = new_velocity
-        self.__lastVelocityUpdate = time
+    def _velocity_updated(self,new_velocity : np.ndarray, old_velocity : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_location : bool = True, try_update_acceleration : bool = True) -> None:
+        self._lastVelocity = new_velocity
+        self._lastVelocityUpdate = time
 
         if try_update_acceleration and (old_velocity is not None) and self.autoUpdateAcceleration:
             acceleration = (new_velocity - old_velocity) / dt
-            self.__acceleration_updated(
+            self._acceleration_updated(
                 acceleration, 
-                self.__lastAcceleration, 
+                self._lastAcceleration, 
                 time, 
-                (time - self.__lastAccelerationUpdate) if self.__lastAccelerationUpdate != 0 else None, 
+                (time - self._lastAccelerationUpdate) if self._lastAccelerationUpdate != 0 else None, 
                 try_update_location = False, 
                 try_update_velocity = False
             )
         
-        if try_update_location and self.autoUpdateLocation and self.__lastLocationUpdate != 0:
+        if try_update_location and self.autoUpdateLocation and self._lastLocationUpdate != 0:
             location = np.zeros((6,))
             if old_velocity is not None:
-                location = self.__lastLocation + (new_velocity + old_velocity) / 2.0 * dt
+                location = self._lastLocation + (new_velocity + old_velocity) / 2.0 * dt
             else:
-                location = self.__lastLocation + new_velocity * dt
+                location = self._lastLocation + new_velocity * dt
 
-            self.__location_updated(
+            self._location_updated(
                 location, 
-                self.__lastLocation, 
+                self._lastLocation, 
                 time, 
-                (time - self.__lastLocationUpdate) if self.__lastLocationUpdate != 0  else None, 
+                (time - self._lastLocationUpdate) if self._lastLocationUpdate != 0  else None, 
                 try_update_velocity = False, 
                 try_update_acceleration = False
             )
@@ -453,29 +453,29 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         for callback in self._velocitySubscribeList:
             callback(self,new_velocity)
         
-        if self.__lastLocationUpdate != 0 and self.autoupdateLocalVelocity:
-            self._lastLocalVelocity = coordinate_transform_to_local(new_velocity, self.__lastLocation)
+        if self._lastLocationUpdate != 0 and self.autoupdateLocalVelocity:
+            self._lastLocalVelocity = coordinate_transform_to_local(new_velocity, self._lastLocation)
             for callback in self._localVelocitySubscribeList:
                 callback(self,self._lastLocalVelocity)
 
 
-    def __acceleration_updated(self,new_acceleration : np.ndarray, old_acceleration : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_location : bool = True, try_update_velocity : bool = True) -> None:
-        self.__lastAcceleration = new_acceleration
-        self.__lastAccelerationUpdate = time
+    def _acceleration_updated(self,new_acceleration : np.ndarray, old_acceleration : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_location : bool = True, try_update_velocity : bool = True) -> None:
+        self._lastAcceleration = new_acceleration
+        self._lastAccelerationUpdate = time
         
 
-        if try_update_velocity and self.autoUpdateVelocity and self.__lastVelocityUpdate != 0:
+        if try_update_velocity and self.autoUpdateVelocity and self._lastVelocityUpdate != 0:
             velocity = np.zeros((6,))
             if old_acceleration is not None:
-                velocity = self.__lastVelocity + (new_acceleration + old_acceleration) / 2.0 * dt
+                velocity = self._lastVelocity + (new_acceleration + old_acceleration) / 2.0 * dt
             else:
-                velocity = self.__lastVelocity + new_acceleration * dt
+                velocity = self._lastVelocity + new_acceleration * dt
             
-            self.__velocity_updated(
+            self._velocity_updated(
                 velocity, 
-                self.__lastVelocity, 
+                self._lastVelocity, 
                 time, 
-                (time - self.__lastVelocityUpdate) if self.__lastVelocityUpdate != 0 else None, 
+                (time - self._lastVelocityUpdate) if self._lastVelocityUpdate != 0 else None, 
                 try_update_location = try_update_location, 
                 try_update_acceleration = False
             )
@@ -483,19 +483,19 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         for callback in self._accelerationSubscribeList:
             callback(self,new_acceleration)
 
-        if self.__lastLocationUpdate != 0 and self.autoUpdateLocalAcceleration:
-            self._lastLocalAcceleration = coordinate_transform_to_local(new_acceleration, self.__lastLocation)
+        if self._lastLocationUpdate != 0 and self.autoUpdateLocalAcceleration:
+            self._lastLocalAcceleration = coordinate_transform_to_local(new_acceleration, self._lastLocation)
             for callback in self._localAccelerationSubscribeList:
                 callback(self,self._lastLocalAcceleration)
         
     def getLocation(self) -> typing.Optional[np.ndarray]:
-        return self.__lastLocation if self.__lastLocationUpdate != 0 else None
+        return self._lastLocation if self._lastLocationUpdate != 0 else None
 
     def getVelocity(self) -> typing.Optional[np.ndarray]:
-        return self.__lastVelocity if self.__lastVelocityUpdate != 0 else None
+        return self._lastVelocity if self._lastVelocityUpdate != 0 else None
     
     def getAcceleration(self) -> typing.Optional[np.ndarray]:
-        return self.__lastAcceleration if self.__lastAccelerationUpdate != 0 else None
+        return self._lastAcceleration if self._lastAccelerationUpdate != 0 else None
     
     def getLocalVelocity(self) -> typing.Optional[np.ndarray]:
         return self._lastLocalVelocity
@@ -506,7 +506,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
 class LocalCoordinateTransformedEstimatorImpl(LocalFrameEstimator):
 
     @classmethod
-    def generateTransformMatrices(newX : np.ndarray, newY : np.ndarray, newZ : np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
+    def generateTransformMatrices(cls, newX : np.ndarray, newY : np.ndarray, newZ : np.ndarray) -> typing.Tuple[np.ndarray, np.ndarray]:
         assert newX.shape == (3,) and newY.shape == (3,) and newZ.shape == (3,)
         
         newX_unit = newX / np.linalg.norm(newX)
@@ -540,59 +540,66 @@ class LocalCoordinateTransformedEstimatorImpl(LocalFrameEstimator):
         newZ : np.ndarray
     ):
         assert newX.shape == (3,) and newY.shape == (3,) and newZ.shape == (3,)
-        self.__newX = newX
-        self.__newY = newY
-        self.__newZ = newZ
+        self._newX = newX
+        self._newY = newY
+        self._newZ = newZ
+        self.base = base
 
-        self.__calcNewTransformMat()
+        self._calcNewTransformMat()
     
-    def __calcNewTransformMat(self):
-        (self.__toOriginalFrameMat, self.__toNewFrameMat, self.__toOriginalFrameMatUnit, self.__toNewFrameMatUnit) : typing.Tuple[np.ndarray,np.ndarray, np.ndarray,np.ndarray] = __class__.generateTransformMatrices(self.__newX, self.__newY, self.__newZ)
+    def _calcNewTransformMat(self):
+        rst = __class__.generateTransformMatrices(self._newX, self._newY, self._newZ)
+        self._toOriginalFrameMat : np.ndarray = rst[0]
+        self._toNewFrameMat : np.ndarray = rst[1]
+        self._toOriginalFrameMatUnit : np.ndarray = rst[2]
+        self._toNewFrameMatUnit : np.ndarray = rst[3]
     
 
     def getNewX(self):
-        return self.__newX
+        return self._newX
     
     def getNewY(self):
-        return self.__newY
+        return self._newY
     
     def getNewZ(self):
-        return self.__newZ
+        return self._newZ
     
     def setNewX(self, newX: np.ndarray):
         assert newX.shape == (3,)
 
-        self.__newX = newX
-        self.__calcNewTransformMat()
+        self._newX = newX
+        self._calcNewTransformMat()
 
     def setNewY(self, newY: np.ndarray):
         assert newY.shape == (3,)
 
-        self.__newY = newY
-        self.__calcNewTransformMat()
+        self._newY = newY
+        self._calcNewTransformMat()
 
     def setNewZ(self, newZ: np.ndarray):
         assert newZ.shape == (3,)
 
-        self.__newZ = newZ
-        self.__calcNewTransformMat()
+        self._newZ = newZ
+        self._calcNewTransformMat()
 
     def getLocalAcceleration(self) -> typing.Optional[np.ndarray]:
-        superAcc = super().getLocalAcceleration()
+        superAcc = self.base.getLocalAcceleration()
         if superAcc is None:
             return None
         else:
-            return np.concatenate(
-                self.__toNewFrameMat @ superAcc[:3].reshape((3,1)),
-                self.__toNewFrameMatUnit @ superAcc[3:].reshape((3,1))
-            ).reshape((6,))
+            return np.concatenate([
+                self._toNewFrameMat @ superAcc[:3].reshape((3,1)),
+                self._toNewFrameMatUnit @ superAcc[3:].reshape((3,1))
+            ]).reshape((6,))
     
     def getLocalVelocity(self) -> typing.Optional[np.ndarray]:
-        superVel = super().getLocalVelocity()
+        superVel = self.base.getLocalVelocity()
         if superVel is None:
             return None
         else:
-            return np.concatenate(
-                self.__toNewFrameMat @ superVel[:3].reshape((3,1)),
-                self.__toNewFrameMatUnit @ superVel[3:].reshape((3,1))
-            ).reshape((6,))
+            return np.concatenate([
+                self._toNewFrameMat @ superVel[:3].reshape((3,1)),
+                self._toNewFrameMatUnit @ superVel[3:].reshape((3,1))
+            ]).reshape((6,))
+
+    # TODO: Finish Subscribe Functions

@@ -116,3 +116,4 @@ Because of this, we will also need to re-define our Vive Tracker's axes
 ![Redefined Vive Tracker Axis](static/redefined_tracker_axis.jpg)
 
 
+> Note: A circle here means the axis is pointing INTO the page

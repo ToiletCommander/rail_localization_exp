@@ -45,7 +45,8 @@ to_a1_frame_mat = from_a1_frame_mat
 
 class A1RobotIMULocalEstimator(LocalFrameEstimatorImpl, NonBlocking):
     def __init__(self, robot_interface : typing.Optional[RobotInterface]):
-        super(LocalFrameEstimatorImpl).__init__(
+        LocalFrameEstimatorImpl.__init__(
+            self,
             "A1RobotIMULocalEstimator",
             autoUpdateVelocity=False,
             autoUpdateAcceleration=False
@@ -84,8 +85,16 @@ class A1RobotIMULocalEstimator(LocalFrameEstimatorImpl, NonBlocking):
         rot_ang = rotation_angle_from_quaternion(q)
         inv_rot_mat = rotation_matrix_inverse(*rot_ang)
 
+
         calibrated_accelerometer_reading = accelerometer_reading + inv_rot_mat @ np.array([0,0,-9.8])
         
+        if np.all(accelerometer_reading == 0):
+            calibrated_accelerometer_reading = np.zeros((3,))
+            rot_ang = np.zeros((3,))
+
+
+        #print(calibrated_accelerometer_reading)
+
         transformed_rot_ang = from_a1_frame_mat @ rot_ang
         transformed_calibrated_accelerometer_reading = from_a1_frame_mat @ calibrated_accelerometer_reading
 
@@ -95,9 +104,9 @@ class A1RobotIMULocalEstimator(LocalFrameEstimatorImpl, NonBlocking):
 
         if self.__lastLocalLinearVelocityUpdate == 0:
             self.__lastLocalLinearVelocityUpdate = ctime
-            self.__lastLocalLinearVelocityUpdate = np.zeros(3)
+            self.__lastLocalLinearVelocity = np.zeros(3)
         else:
-            linear_velocity_dt = ctime - self.__lastLocalVelocityUpdate
+            linear_velocity_dt = ctime - self.__lastLocalLinearVelocityUpdate
             linear_velocity = self.__lastLocalLinearVelocity + transformed_calibrated_accelerometer_reading * linear_velocity_dt
             self.__lastLocalLinearVelocity = linear_velocity
             self.__lastLocalLinearVelocityUpdate = ctime
@@ -115,12 +124,12 @@ class A1RobotIMULocalEstimator(LocalFrameEstimatorImpl, NonBlocking):
             self.__lastLocalAngularLocationUpdate = ctime
 
         # update all accelerations
-        if self.__lastLocalVelocityUpdate != 0:
-            last_angular_velocity = self.__lastLocalVelocity[3:]
-            angular_accel = (angular_velocity - last_angular_velocity) / (ctime - self.__lastLocalVelocityUpdate)
+        if self._lastLocalVelocityUpdate != 0:
+            last_angular_velocity = self._lastLocalVelocity[3:]
+            angular_accel = (angular_velocity - last_angular_velocity) / (ctime - self._lastLocalVelocityUpdate)
             self._call_local_acceleration_update(np.concatenate([transformed_calibrated_accelerometer_reading,angular_accel]).reshape((6,)))
         
-        if linear_velocity != None and angular_velocity != None:
+        if linear_velocity is not None and angular_velocity is not None:
             self._call_local_velocity_update(np.concatenate([linear_velocity,angular_velocity]).reshape((6,)))
 
 

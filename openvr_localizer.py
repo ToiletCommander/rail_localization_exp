@@ -1,3 +1,4 @@
+from ast import Global
 import time
 import typing
 import openvr
@@ -42,8 +43,9 @@ to_openvr_transform_matrix = np.array([
 
 class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
     def __init__(self, vrSystem: openvr.IVRSystem, device_index : int):
-        super().__init__(
-            "OpenVRGlobalFrameEstimator", 
+        GlobalFrameEstimatorImpl.__init__(
+            self,
+            name="OpenVRGlobalFrameEstimator", 
             autoUpdateLocation=False, 
             autoUpdateVelocity=False, 
             autoUpdateAcceleration=True,
@@ -125,7 +127,7 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         spaceVelocity_local_raw = rotation_matrix_raw_inv @  vr_spaceVelocity
         angularVelocity_local_raw = rotation_matrix_raw_inv @ vr_angularVelocity
 
-        print("raw coordinate position",global_position_raw,global_rotation_raw)
+        # print("raw coordinate position",global_position_raw,global_rotation_raw)
         transformed_global_position = from_openvr_transform_matrix @ global_position_raw
         transformed_global_rotation = from_openvr_transform_matrix @ global_rotation_raw
         transformed_spaceVelocity_global = from_openvr_transform_matrix @ vr_spaceVelocity
@@ -152,9 +154,9 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             callback(self, localVelocity)
 
     @classmethod
-    def getOpenVRTrackerFromViveTracker() -> typing.Optional[typing.Any]:
+    def getOpenVRTrackerFromViveTracker(cls) -> typing.Optional[typing.Any]:
         vrSys = openvr.init(openvr.VRApplication_Other)
-        available_devices = __class__.getAvailableDeviceNameAndIndexes(vrSys)
+        available_devices = OpenVRGlobalFrameEstimator.getAvailableDeviceNameAndIndexes(vrSys)
         
         device_index = None
         for (index,name) in available_devices:
@@ -163,9 +165,11 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
                 break
         
         if device_index is None:
+            print('avilable_openvr_devices',available_devices)
             return None
             
-        Tracker = __class__(vrSys, device_index)
+        Tracker = OpenVRGlobalFrameEstimator(vrSys, device_index)
+        return Tracker
     
     @classmethod
     def terminateOpenVRSystem():
