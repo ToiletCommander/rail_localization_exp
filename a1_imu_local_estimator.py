@@ -1,19 +1,21 @@
 import time
 import typing
 import openvr
-from localizer_base import GlobalFrameEstimatorImpl, LocalFrameEstimatorImpl, NonBlocking, rotation_angle_from_quaternion, rotation_matrix, rotation_matrix_inverse
 import numpy as np
-from robot_interface import RobotInterface # pytype: disable=import-error
 import inspect
 import os
 import sys
 import time
 
+
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
+parentdir = os.path.dirname(currentdir)
+os.sys.path.insert(0, currentdir)
 os.sys.path.insert(0, parentdir)
 
+from localizer_base import GlobalFrameEstimatorImpl, LocalFrameEstimatorImpl, NonBlocking, rotation_angle_from_quaternion, rotation_matrix, rotation_matrix_inverse
+from robot_interface import RobotInterface # pytype: disable=import-error
 
 
 """
@@ -50,7 +52,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         _robot_interface.send_command(np.zeros(60, dtype=np.float32))
         return _robot_interface
 
-    def __init__(self, robot_interface : typing.Optional[RobotInterface]):
+    def __init__(self, robot_interface : typing.Optional[RobotInterface], calibrate_gravity : bool = True) -> None:
         GlobalFrameEstimatorImpl.__init__(
             self,
             "A1RobotIMUEstimator",
@@ -78,7 +80,9 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
         self.negative_gravity_vector = np.array([0,0,-9.8])
 
-        self.calibrate_for_gravity()
+        if calibrate_gravity:
+            self.calibrate_for_gravity()
+        
         self.update()
 
     def reset(self) -> None:
@@ -101,6 +105,9 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         return self._lastLocalAngularLocation()
         
     def calibrate_for_gravity(self, duration_to_take_mean) -> None:
+        if self.robot_interface is None:
+            return
+        
         start_time = time.time()
         sum_of_gravity = np.array([0,0,0])
         last_time = start_time

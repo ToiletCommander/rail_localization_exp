@@ -2,7 +2,6 @@ import typing
 import numpy as np
 import time
 
-
 class NonBlocking:
     def update(self) -> None:
         return

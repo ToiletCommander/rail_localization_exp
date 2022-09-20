@@ -10,14 +10,14 @@ import re
 import sys
 import time
 import pybullet
-
 import numpy as np
-from robot_interface import RobotInterface  # pytype: disable=import-error
 
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
+
+from robot_interface import RobotInterface  # pytype: disable=import-error
 
 from localizer_base import rotation_angle_from_quaternion, rotation_matrix
 

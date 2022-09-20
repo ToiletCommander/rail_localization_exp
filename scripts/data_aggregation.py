@@ -1,13 +1,24 @@
-from tracemalloc import start
+import numpy as np
+import time
+import pandas as pd
+import os
+import inspect
+
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+parent_parentdir = os.path.dirname(parentdir)
+os.sys.path.insert(0, currentdir)
+os.sys.path.insert(0, parentdir)
+os.sys.path.insert(0, parent_parentdir)
+
+from robot_interface import RobotInterface # pytype: disable=import-error
 from localizer_base import LocalCoordinateTransformedEstimatorImpl
 from openvr_localizer import OpenVRGlobalFrameEstimator
 from a1_imu_local_estimator import A1RobotIMULocalEstimator
-import numpy as np
-from robot_interface import RobotInterface # pytype: disable=import-error
-import time
-import pandas as pd
 
 UPDATE_GAP_SECS = 0.1
+
 
 _robot_interface : RobotInterface = A1RobotIMULocalEstimator.getAndInitRobotInterface()
 _openvr_tracker : OpenVRGlobalFrameEstimator = OpenVRGlobalFrameEstimator.getOpenVRTrackerFromViveTracker()

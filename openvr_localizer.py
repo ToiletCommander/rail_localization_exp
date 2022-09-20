@@ -1,9 +1,16 @@
-from ast import Global
 import time
 import typing
 import openvr
-from localizer_base import GlobalFrameEstimatorImpl, NonBlocking, rotation_angle
+import os
 import numpy as np
+import inspect
+
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
+os.sys.path.insert(0, currentdir)
+
+from localizer_base import GlobalFrameEstimatorImpl, NonBlocking, rotation_angle
+
 
 """
 // right-handed system
