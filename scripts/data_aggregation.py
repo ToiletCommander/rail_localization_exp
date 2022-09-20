@@ -9,8 +9,7 @@ import pandas as pd
 
 UPDATE_GAP_SECS = 0.1
 
-_robot_interface = RobotInterface() # type: RobotInterface
-_robot_interface.send_command(np.zeros(60, dtype=np.float32))
+_robot_interface : RobotInterface = A1RobotIMULocalEstimator.getAndInitRobotInterface()
 _openvr_tracker : OpenVRGlobalFrameEstimator = OpenVRGlobalFrameEstimator.getOpenVRTrackerFromViveTracker()
 if _openvr_tracker is None:
     print("No tracker found")

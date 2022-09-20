@@ -206,9 +206,9 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
         self._localVelocitySubscribeList : typing.List[typing.Callable[[LocalFrameEstimator, np.ndarray], None]] = []
         self._localAccelerationSubscribeList : typing.List[typing.Callable[[LocalFrameEstimator, np.ndarray], None]] = []
 
-        self._lastLocalVelocity : np.ndarray = np.zeros(6)
+        self._lastLocalVelocity : np.ndarray = np.zeros((6,), dtype=np.float32)
         self._lastLocalVelocityUpdate : float = 0
-        self._lastLocalAcceleration : np.ndarray = np.zeros(6)
+        self._lastLocalAcceleration : np.ndarray = np.zeros((6,), dtype=np.float32)
         self._lastLocalAccelerationUpdate : float = 0
     
     def __str__(self) -> str:
@@ -269,7 +269,7 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
         self._lastLocalAccelerationUpdate = ctime
 
         if try_update_local_velocity and self.autoUpdateVelocity and self._lastLocalVelocityUpdate != 0:
-            velocity = np.zeros((6,))
+            velocity = np.zeros((6,), dtype=np.float32)
             if old_local_acceleration is not None:
                 velocity = self._lastLocalVelocity + (new_local_acceleration + old_local_acceleration) / 2.0 * dt
             else:
@@ -332,14 +332,24 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         self._lastLocationUpdate : float = 0
         self._lastVelocityUpdate : float = 0
         self._lastAccelerationUpdate : float = 0
-        self._lastAcceleration : np.ndarray = np.zeros(6)
-        self._lastVelocity : np.ndarray = np.zeros(6)
-        self._lastLocation : np.ndarray = np.zeros(6)
+        self._lastAcceleration : np.ndarray = np.zeros((6,), dtype=np.float32)
+        self._lastVelocity : np.ndarray = np.zeros((6,), dtype=np.float32)
+        self._lastLocation : np.ndarray = np.zeros((6,), dtype=np.float32)
         self._lastLocalVelocity : typing.Optional[np.ndarray] = None
         self._lastLocalAcceleration : typing.Optional[np.ndarray] = None
 
     def __str__(self) -> str:
         return self.name + "(GlobalFrameEstimatorImpl)"
+    
+    def reset(self) -> None:
+        self._lastLocationUpdate = 0
+        self._lastVelocityUpdate = 0
+        self._lastAccelerationUpdate = 0
+        self._lastAcceleration = np.zeros((6,), dtype=np.float32)
+        self._lastVelocity = np.zeros((6,), dtype=np.float32)
+        self._lastLocation = np.zeros((6,), dtype=np.float32)
+        self._lastLocalVelocity = None
+        self._lastLocalAcceleration = None
     
     def subscribe_location(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
         self._locationSubscribeList.append(callback)
@@ -435,7 +445,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
             )
         
         if try_update_location and self.autoUpdateLocation and self._lastLocationUpdate != 0:
-            location = np.zeros((6,))
+            location = np.zeros((6,), dtype=np.float32)
             if old_velocity is not None:
                 location = self._lastLocation + (new_velocity + old_velocity) / 2.0 * dt
             else:
@@ -465,7 +475,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         
 
         if try_update_velocity and self.autoUpdateVelocity and self._lastVelocityUpdate != 0:
-            velocity = np.zeros((6,))
+            velocity = np.zeros((6,), dtype=np.float32)
             if old_acceleration is not None:
                 velocity = self._lastVelocity + (new_acceleration + old_acceleration) / 2.0 * dt
             else:
