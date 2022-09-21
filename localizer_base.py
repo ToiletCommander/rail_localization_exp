@@ -66,6 +66,54 @@ def rotation_angle_from_quaternion(q) -> typing.Tuple[float,float,float]:
 
     return (roll, pitch, yaw)
 
+def rotation_matrix_and_inverse_rotation_matrix(
+    roll,
+    pitch,
+    yaw
+) -> np.ndarray:
+    c1 = np.cos(roll)
+    c2 = np.cos(pitch)
+    c3 = np.cos(yaw)
+    s1 = np.sin(roll)
+    s2 = np.sin(pitch)
+    s3 = np.sin(yaw)
+    ns1 = -s1
+    ns2 = -s2
+    ns3 = -s3
+
+    R_Z = np.array([
+        [c3, -s3, 0],
+        [s3 , c3, 0],
+        [0, 0, 1]
+    ])
+
+    R_Y = np.array([
+        [c2, 0, s2],
+        [0 ,1 ,0],
+        [-s2, 0, c2]
+    ])
+
+    R_X = np.array([
+        [1, 0, 0],
+        [0, c1, -s1],
+        [0, s1, c1]
+    ])
+
+    nR_Z = R_Z.copy()
+    nR_Z[0,1] = -ns3
+    nR_Z[1,0] = ns3
+    nR_Y = R_Y.copy()
+    nR_Y[0,2] = ns2
+    nR_Y[2,0] = -ns2
+    nR_X = R_X.copy()
+    nR_X[1,2] = -ns1
+    nR_X[2,1] = ns1
+
+    rot_mat = (R_Z @ R_Y @ R_X)
+    inv_rot_mat = (nR_X @ nR_Y @ nR_Z)
+    return rot_mat, inv_rot_mat
+
+
 def rotation_matrix(
     roll,
     pitch,
@@ -190,6 +238,9 @@ class LocalFrameEstimator:
     def unsubscribeLocalAcceleration(self, callback : typing.Callable[[typing.Any, np.ndarray], None]) -> None:
         raise NotImplementedError
     
+    def reset(self) -> None:
+        raise NotImplementedError
+    
     def getLocalVelocity(self) -> typing.Optional[np.ndarray]:
         raise NotImplementedError
     
@@ -212,7 +263,13 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
     
     def __str__(self) -> str:
         return self.name + "(LocalFrameEstimatorImpl)"
-
+    
+    def reset(self) -> None:
+        self._lastLocalVelocity : np.ndarray = np.zeros((6,), dtype=np.float32)
+        self._lastLocalVelocityUpdate : float = 0
+        self._lastLocalAcceleration : np.ndarray = np.zeros((6,), dtype=np.float32)
+        self._lastLocalAccelerationUpdate : float = 0
+    
     def subscribeLocalVelocity(self, callback : typing.Callable[[typing.Any, np.ndarray], None]) -> None:
         self._localVelocitySubscribeList.append(callback)
     
@@ -302,6 +359,9 @@ class GlobalFrameEstimator:
         raise NotImplementedError
     
     def unsubscribe_acceleration(self, callback : typing.Callable[[typing.Any,np.ndarray],None]):
+        raise NotImplementedError
+    
+    def reset(self) -> None:
         raise NotImplementedError
     
     def getLocation(self) -> typing.Optional[np.ndarray]:
@@ -410,6 +470,24 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         else:
             self._acceleration_updated(new_acceleration, None, ctime, None, False, False)
     
+    def _call_local_velocity_update(self, new_local_velocity : np.ndarray) -> None:
+        assert new_local_velocity.shape == (6,)
+        
+        ctime = time.time()
+        self._lastLocalVelocity = new_local_velocity
+        
+        for callback in self._localVelocitySubscribeList:
+            callback(self, new_local_velocity)
+    
+    def _call_local_acceleration_update(self, new_local_acceleration : np.ndarray) -> None:
+        assert new_local_acceleration.shape == (6,)
+        
+        ctime = time.time()
+        self._lastLocalAcceleration = new_local_acceleration
+        
+        for callback in self._localAccelerationSubscribeList:
+            callback(self, new_local_acceleration)
+
     def _location_updated(self,new_location : np.ndarray, old_location : typing.Optional[np.ndarray], time : float, dt : typing.Optional[float], try_update_velocity: bool = True, try_update_acceleration : bool = True) -> None:
         self._lastLocation = new_location
         self._lastLocationUpdate = time

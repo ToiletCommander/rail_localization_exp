@@ -106,7 +106,7 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         };
         """
         if not(tracked_info.bPoseIsValid):
-            print("Pose Invalid!")
+            print("OpenVR Pose Invalid!")
             return
 
         vr_pose = np.ctypeslib.as_array(tracked_info.mDeviceToAbsoluteTracking[:], shape=(3, 4))
