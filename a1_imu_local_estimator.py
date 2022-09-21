@@ -81,7 +81,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         self.negative_gravity_vector = np.array([0,0,-9.8])
 
         if calibrate_gravity:
-            self.calibrate_for_gravity()
+            self.calibrate_for_gravity(2.0)
         
         self.update()
 
@@ -109,7 +109,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             return
         
         start_time = time.time()
-        sum_of_gravity = np.array([0,0,0])
+        sum_of_gravity = np.zeros((3,),dtype=np.float32)
         last_time = start_time
         while True:
             ctime = time.time()
@@ -125,7 +125,8 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             
             if np.all(accelerometer_reading == 0):
                 raise Exception("Accelerometer reading is 0,0,0. Is the IMU connected?")
-            
+                return
+
             rot_ang = rotation_angle_from_quaternion(q)
             rot_mat = rotation_matrix(*rot_ang)
             accelerometer_reading_global = rot_mat @ accelerometer_reading

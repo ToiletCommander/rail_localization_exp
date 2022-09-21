@@ -80,6 +80,10 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             
         return lst
     
+    def reset(self):
+        self.__lastLocalVelocityUpdate = 0
+        super().reset()
+
     def update(self):
         poses = self.vrSystem.getDeviceToAbsoluteTrackingPose(
             openvr.TrackingUniverseStanding,0,openvr.k_unMaxTrackedDeviceCount
