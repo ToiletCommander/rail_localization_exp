@@ -1,22 +1,8 @@
-import time
 import typing
-import openvr
+from .robot import RobotInterface, getImuQuaternion, getImuRollPitchYaw, getAccelerometerReading, from_a1_frame, to_a1_frame, getAndInitRobotInterface as initRobot
 import numpy as np
-import inspect
-import os
-import sys
+from localizer_base import GlobalFrameEstimatorImpl, NonBlocking, rotation_matrix_and_inverse_rotation_matrix, rotation_angle_from_quaternion, rotation_matrix, rotation_matrix_inverse
 import time
-
-
-currentdir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-os.sys.path.insert(0, currentdir)
-os.sys.path.insert(0, parentdir)
-
-from localizer_base import GlobalFrameEstimatorImpl, LocalFrameEstimatorImpl, NonBlocking, rotation_angle_from_quaternion, rotation_matrix, rotation_matrix_and_inverse_rotation_matrix, rotation_matrix_inverse
-from robot_interface import RobotInterface # pytype: disable=import-error
-
 
 """
 A1 Local Coordinate Frame
@@ -37,17 +23,10 @@ a1_Y = -our_y
 a1_Z = -our_Z
 """
 
-def from_a1_frame(a1_frame : np.ndarray) -> np.ndarray:
-    return -a1_frame
-
-to_a1_frame = from_a1_frame
-
 class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
     @classmethod
     def getAndInitRobotInterface(cls) -> RobotInterface:
-        _robot_interface = RobotInterface() # type: RobotInterface
-        _robot_interface.send_command(np.zeros(60, dtype=np.float32))
-        return _robot_interface
+        return initRobot()
 
     def __init__(self, robot_intf : typing.Optional[RobotInterface], calibrate_gravity : bool = True) -> None:
         GlobalFrameEstimatorImpl.__init__(
@@ -142,14 +121,16 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
             observation = self.robot.receive_observation()
 
-            q = observation.imu.quaternion
-            accelerometer_reading = np.array(observation.imu.accelerometer)
+            q = getImuQuaternion(observation)
+            accelerometer_reading = getAccelerometerReading(observation)
             
             if np.all(accelerometer_reading == 0):
                 raise Exception("Accelerometer reading is 0,0,0. Is the IMU connected?")
                 return
 
             rot_ang = rotation_angle_from_quaternion(q)
+            #rot_ang = np.array(getImuRollPitchYaw(observation))
+            
             rot_mat = rotation_matrix(*rot_ang)
             accelerometer_reading_global = rot_mat @ accelerometer_reading
             sum_of_gravity += accelerometer_reading_global * dt
@@ -200,10 +181,10 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
     def updateFromObservation(self, observation : typing.Any) -> None:
         #wxyz quaternion
-        q = observation.imu.quaternion
+        #q = getImuQuaternion(observation)
 
         #xyz acceleration in original coordinates
-        raw_accelerometer_reading = np.array(observation.imu.accelerometer)
+        raw_accelerometer_reading = getAccelerometerReading(observation)
 
         if np.all(raw_accelerometer_reading == 0):
             calibrated_accelerometer_raw_reading = np.zeros((3,))
@@ -211,7 +192,9 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             print("Accelerometer reading is 0,0,0. Is the IMU connected?")
             return
 
-        raw_rot_ang = np.array(rotation_angle_from_quaternion(q))
+        #raw_rot_ang = np.array(rotation_angle_from_quaternion(q))
+        raw_rot_ang = np.array(getImuRollPitchYaw(observation))
+        
         raw_rot_mat, raw_inv_rot_mat = rotation_matrix_and_inverse_rotation_matrix(*raw_rot_ang)
 
         calibrated_accelerometer_raw_reading = raw_accelerometer_reading + raw_inv_rot_mat @ self.negative_gravity_vector

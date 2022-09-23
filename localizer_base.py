@@ -336,10 +336,10 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
             callback(self, new_local_acceleration)
         
     def getLocalVelocity(self) -> typing.Optional[np.ndarray]:
-        return self._lastLocalVelocity if self._lastLocalVelocityUpdate != 0 else None
+        return self._lastLocalVelocity
     
     def getLocalAcceleration(self) -> typing.Optional[np.ndarray]:
-        return self._lastLocalAcceleration if self._lastLocalAccelerationUpdate != 0 else None
+        return self._lastLocalAcceleration
 
 
 class GlobalFrameEstimator:
