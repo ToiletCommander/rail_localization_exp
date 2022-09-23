@@ -181,7 +181,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
     def updateFromObservation(self, observation : typing.Any) -> None:
         #wxyz quaternion
-        #q = getImuQuaternion(observation)
+        q = getImuQuaternion(observation)
 
         #xyz acceleration in original coordinates
         raw_accelerometer_reading = getAccelerometerReading(observation)
@@ -192,8 +192,8 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             print("Accelerometer reading is 0,0,0. Is the IMU connected?")
             return
 
-        #raw_rot_ang = np.array(rotation_angle_from_quaternion(q))
-        raw_rot_ang = np.array(getImuRollPitchYaw(observation))
+        raw_rot_ang = np.array(rotation_angle_from_quaternion(q))
+        #raw_rot_ang = np.array(getImuRollPitchYaw(observation))
         
         raw_rot_mat, raw_inv_rot_mat = rotation_matrix_and_inverse_rotation_matrix(*raw_rot_ang)
 
