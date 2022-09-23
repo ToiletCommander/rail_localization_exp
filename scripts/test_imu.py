@@ -41,10 +41,11 @@ while(True):
 
     
     q = state.imu.quaternion
+
     #print('imu',state.imu, 'quaternion', q)
 
     # Convert quaternion from wxyz to xyzw, which is default for Pybullet.
-    _base_orientation = np.array([q[1], q[2], q[3], q[0]])
+    #_base_orientation = np.array([q[1], q[2], q[3], q[0]])
 
     _accelerometer_reading = np.array(state.imu.accelerometer)
     print('accel_raw',_accelerometer_reading)

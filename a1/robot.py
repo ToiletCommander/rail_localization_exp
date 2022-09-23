@@ -43,6 +43,9 @@ def getImuQuaternion(raw_state) -> typing.Tuple[float,float,float,float]:
     return np.array(raw_state.imu.quaternion)
 
 def getImuRollPitchYaw(raw_state) -> typing.Tuple[float,float,float]:
+    return rotation_angle_from_quaternion(getImuQuaternion(raw_state))
+
+def getImuRollPitchYawAcceleration(raw_state) -> typing.Tuple[float,float,float]:
     return raw_state.imu.gyroscope
 
 def getAccelerometerReading(raw_state) -> np.ndarray:
