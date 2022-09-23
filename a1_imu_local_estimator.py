@@ -61,6 +61,8 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         )
         self.robot = robot_intf
 
+        self.reset()
+
         self.negative_gravity_vector = np.array([0,0,-9.8])
 
         if calibrate_gravity:
@@ -115,7 +117,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
         ret = None
 
-        if self._lastGlobalAngularVelocityUpdate != 0:
+        if new_angular_velocity is not None and self._lastGlobalAngularVelocityUpdate != 0:
             ret = (new_angular_velocity - self._lastGlobalAngularVelocity) / dt
         
         return ret
@@ -209,7 +211,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             print("Accelerometer reading is 0,0,0. Is the IMU connected?")
             return
 
-        raw_rot_ang = rotation_angle_from_quaternion(q)
+        raw_rot_ang = np.array(rotation_angle_from_quaternion(q))
         raw_rot_mat, raw_inv_rot_mat = rotation_matrix_and_inverse_rotation_matrix(*raw_rot_ang)
 
         calibrated_accelerometer_raw_reading = raw_accelerometer_reading + raw_inv_rot_mat @ self.negative_gravity_vector
@@ -241,7 +243,13 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         if global_linear_velocity is not None and global_angular_velocity is not None:
             global_velocity = np.concatenate((global_linear_velocity, global_angular_velocity))
             self._call_velocity_update(global_velocity)
-            local_velocity = from_a1_frame(raw_inv_rot_mat @ to_a1_frame(global_velocity))
+
+            a1_frame_global_v = to_a1_frame(global_velocity)
+            a1_frame_global_v = np.hstack([a1_frame_global_v[:3].reshape((3,1)),a1_frame_global_v[3:].reshape((3,1))])
+
+            local_velocity = from_a1_frame(raw_inv_rot_mat @ a1_frame_global_v)
+            local_velocity = np.concatenate([local_velocity[:,0],local_velocity[:,1]])
+
             self._call_local_velocity_update(local_velocity)
         
         if global_linear_acceleration is not None and global_angular_acceleration is not None:
