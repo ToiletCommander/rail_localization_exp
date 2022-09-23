@@ -21,10 +21,10 @@ def getFootForces(raw_state) -> np.ndarray:
     return np.array(raw_state.footForce)
 
 def getFootContacts(raw_state, thereshold : float = 20) -> np.ndarray:
-    return np.array(raw_state.footContact) > thereshold
+    return np.array(raw_state.footForce) >= thereshold
 
 def getMotorVelocities(raw_state) -> np.ndarray:
-    np.array([motor.dq for motor in raw_state.motorState[:12]])
+    return np.array([motor.dq for motor in raw_state.motorState[:12]])
 
 def getMotorAngles(raw_state) -> np.ndarray:
     return np.array([motor.q for motor in raw_state.motorState[:12]])
@@ -79,7 +79,7 @@ def analytical_leg_jacobian(leg_angles, leg_id):
 
 
 def getLegJacobian(leg_id : int, motor_angles : np.ndarray):
-    analytical_leg_jacobian(motor_angles[3 * leg_id:3 * leg_id + 3], leg_id)
+    return analytical_leg_jacobian(motor_angles[3 * leg_id:3 * leg_id + 3], leg_id)
 
 def from_a1_frame(a1_frame : np.ndarray) -> np.ndarray:
     return -a1_frame

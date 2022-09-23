@@ -16,6 +16,9 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         )
 
         self.robot = robot_intf
+        self._lastFootContact = np.array([False, False, False, False])
+        self._lastMotorVelocities = np.zeros((12,))
+        self._lastMotorAngles = np.zeros((12,))
     
     def update(self):
         if self.robot is not None:
@@ -25,6 +28,18 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         foot_velocities = []
         foot_contact = getFootContacts(observation)
         motor_velocities = getMotorVelocities(observation)
+        motor_angles = getMotorAngles(observation)
+
+
+        if foot_contact is None:
+            print("Foot contact is none?")
+            foot_contact = self._lastFootContact
+        if motor_velocities is None:
+            print("Motor velocity is none?")
+            motor_velocities = self._lastMotorVelocities
+        if motor_angles is None:
+            print("Motor angle is none?")
+            motor_angles = self._lastMotorAngles
         
         for leg_id in range(4):
             if foot_contact[leg_id]:
@@ -47,3 +62,6 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
                 np.concatenate([transformed_v, np.zeros((3,))])
             )
 
+        self._lastMotorAngles = motor_angles
+        self._lastMotorVelocities = motor_velocities
+        self._lastFootContact = foot_contact
