@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import inspect
 from a1.foot_contact_estimator import A1FootContactLocalVelocityEstimator
+import cv2 as cv
 
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -17,6 +18,7 @@ from a1.robot import RobotInterface
 from localizer_base import LocalCoordinateTransformedEstimatorImpl
 from openvr_localizer import OpenVRGlobalFrameEstimator
 from a1.imu_local_estimator import A1RobotIMULocalEstimator
+from optical_flow.optical_flow_estimator import OpticalFlowVelocityEstimator
 
 UPDATE_GAP_SECS = 0.1
 
@@ -29,6 +31,10 @@ if _openvr_tracker is None:
 
 _a1_imu_estimator = A1RobotIMULocalEstimator(_robot_interface)
 _a1_leg_estimator = A1FootContactLocalVelocityEstimator(_robot_interface)
+_optical_flow_estimator = OpticalFlowVelocityEstimator( #Attach Camera to the left side of the robot
+    np.array([0,0,np.pi/2],dtype=np.float32),
+    cv.VideoCapture(0)
+)
 
 _openvr_local_estimator = LocalCoordinateTransformedEstimatorImpl( 
     _openvr_tracker,
@@ -50,7 +56,7 @@ dts = []
 openvr_local_velocities = []
 imu_local_velocities = []
 foot_local_velocities = []
-
+optical_flow_velocities = []
 openvr_local_accels = []
 imu_local_accels = []
 try:
@@ -59,6 +65,7 @@ try:
         a1_obs = _robot_interface.receive_observation()
         _a1_imu_estimator.updateFromObservation(a1_obs)
         _a1_leg_estimator.updateFromObservation(a1_obs)
+        _optical_flow_estimator.update()
 
         ctime = time.time()
 
@@ -72,12 +79,14 @@ try:
         openvr_local = _openvr_local_estimator.getLocalVelocity()
         imu_local = _a1_imu_estimator.getLocalVelocity()
         foot_local = _a1_leg_estimator.getLocalVelocity()
+        optical_flow_local = _optical_flow_estimator.getLocalVelocity()
         openvr_local_accel = _openvr_local_estimator.getLocalAcceleration()
         imu_local_accel = _a1_imu_estimator.getLocalAcceleration()
 
         openvr_local_velocities.append(openvr_local)
         imu_local_velocities.append(imu_local)
         foot_local_velocities.append(foot_local)
+        optical_flow_velocities.append(optical_flow_local)
         openvr_local_accels.append(openvr_local_accel)
         imu_local_accels.append(imu_local_accel)
 
@@ -112,9 +121,9 @@ df = pd.DataFrame({
     'foot_local_velocity_x': [x[0] for x in foot_local_velocities],
     'foot_local_velocity_y': [x[1] for x in foot_local_velocities],
     'foot_local_velocity_z': [x[2] for x in foot_local_velocities],
-    'foot_local_velocity_degx': [x[3] for x in foot_local_velocities],
-    'foot_local_velocity_degy': [x[4] for x in foot_local_velocities],
-    'foot_local_velocity_degz': [x[5] for x in foot_local_velocities],
+    'optical_flow_local_velocity_x': [x[0] for x in optical_flow_velocities],
+    'optical_flow_local_velocity_y': [x[1] for x in optical_flow_velocities],
+    'optical_flow_local_velocity_z': [x[2] for x in optical_flow_velocities],
     'openvr_local_accel_x': [x[0] for x in openvr_local_accels],
     'openvr_local_accel_y': [x[1] for x in openvr_local_accels],
     'openvr_local_accel_z': [x[2] for x in openvr_local_accels],
