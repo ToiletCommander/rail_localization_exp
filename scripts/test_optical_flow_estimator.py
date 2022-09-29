@@ -7,12 +7,13 @@ _videoCap = cv.VideoCapture(1)
 #_videoCap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
 #_videoCap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
 
-_cameraTransform = np.array([0,0,0],dtype= np.float32)
+_cameraTransform = np.array([0,0,np.pi/2.0],dtype= np.float32)
 _estimator = OpticalFlowVelocityEstimator(_cameraTransform)
 while True:
     ret, frame = _videoCap.read()
-    cv.imshow("input", frame)
+    
     grayFrame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     _estimator.updateWithFrame(grayFrame)
     print(_estimator.getLocalVelocity())
-    time.sleep(0.2)
+    cv.imshow("input", frame)
+    cv.waitKey(100)

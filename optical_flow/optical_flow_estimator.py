@@ -8,9 +8,10 @@ zRot: 0
 """
 import time
 import typing
-from localizer_base import LocalFrameEstimator, LocalFrameEstimatorImpl, NonBlocking, rotation_matrix_inverse
+from localizer_base import LocalFrameEstimator, LocalFrameEstimatorImpl, NonBlocking, rotation_matrix, rotation_matrix_inverse
 import cv2 as cv
 import numpy as np
+from .slidingwindow_filter import MovingWindowFilter
 
 def from_camera_coordinate(camera_coord: np.ndarray) -> np.ndarray:
     assert camera_coord.shape == (2,)
@@ -20,6 +21,8 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
     def __init__(
         self, 
         camera_rotation = np.array([0,0,0],dtype=np.float32),
+        x_y_multiplier : typing.Union[float,np.ndarray] = 1.0,
+        moving_window_size : int = 3,
         VideoCapture : typing.Optional[cv.VideoCapture] = None
     ):
         super().__init__(
@@ -27,10 +30,13 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
             autoUpdateVelocity=False, 
             autoUpdateAcceleration=True
         )
+
+        self.x_y_multiplier = x_y_multiplier
         self.video = VideoCapture
         self.prevGray : typing.Optional[np.ndarray] = None
         self.prevGray_time : float = 0
         self.setCameraRotation(camera_rotation)
+        self.slidingWindow = MovingWindowFilter(moving_window_size, shape=(3,), weights=np.array([0.3,0.3,0.4]))
         self.update()
 
     def getCamerRotation(self) -> np.ndarray:
@@ -39,8 +45,14 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
     def setCameraRotation(self, rot: np.ndarray) -> None:
         assert rot.shape == (3,)
         self.__camera_rot = rot
-        self.__camera_rot_inv = rotation_matrix_inverse(*rot)
+        self.__camera_rot_mat = rotation_matrix(*rot)
     
+    def reset(self) -> None:
+        self.slidingWindow.reset()
+        self.prevGray = None
+        self.prevGray_time = 0
+
+
     def update(self):
         if self.video is not None:
             ret, frame = self.video.read()
@@ -53,16 +65,25 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
             self.prevGray_time = time.time()
             return
 
+        ctime = time.time()
+        dt = ctime - self.prevGray_time
+
         flow = cv.calcOpticalFlowFarneback(self.prevGray, grayFrame, None, 0.5, 3, 15, 3, 5, 1.2, 0)
         avgFlow = np.mean(flow,axis=(0,1))
         cameraDeltaPos = -avgFlow
 
-        robotLocalDeltaPos = self.__camera_rot_inv @ from_camera_coordinate(cameraDeltaPos)
+        robotLocalDeltaPos = self.x_y_multiplier * (self.__camera_rot_mat @ from_camera_coordinate(cameraDeltaPos))
 
         self.prevGray = grayFrame
-        self.prevGray_time = time.time()
+        self.prevGray_time = ctime
 
-        self._call_local_velocity_update(np.concatenate([robotLocalDeltaPos.reshape((3,)), np.zeros((3,))]))
+        robotLocalDeltaSpeed = robotLocalDeltaPos / dt
+
+        self.slidingWindow.add_observation(robotLocalDeltaSpeed)
+
+        estimated_velocity = self.slidingWindow.get_average()
+
+        self._call_local_velocity_update(np.concatenate([estimated_velocity.reshape((3,)), np.zeros((3,))]))
 
 
-    
+
