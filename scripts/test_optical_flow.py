@@ -5,7 +5,7 @@ import numpy as np
 # The video feed is read in as
 # a VideoCapture object
 #cap = cv.VideoCapture("videoplayback.mp4")
-cap = cv.VideoCapture(0) # this is the magic!
+cap = cv.VideoCapture(1) # this is the magic!
 
 cap.set(cv.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv.CAP_PROP_FRAME_HEIGHT, 480)

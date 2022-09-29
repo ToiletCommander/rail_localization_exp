@@ -20,7 +20,7 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
     def __init__(
         self, 
         camera_rotation = np.array([0,0,0],dtype=np.float32),
-        VideoCapture = typing.Optional[cv.VideoCapture]
+        VideoCapture : typing.Optional[cv.VideoCapture] = None
     ):
         super().__init__(
             "OpticalFlowVelocityEstimator", 
@@ -39,7 +39,7 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
     def setCameraRotation(self, rot: np.ndarray) -> None:
         assert rot.shape == (3,)
         self.__camera_rot = rot
-        self.__camera_rot_inv = rotation_matrix_inverse(rot)
+        self.__camera_rot_inv = rotation_matrix_inverse(*rot)
     
     def update(self):
         if self.video is not None:
@@ -54,7 +54,7 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
             return
 
         flow = cv.calcOpticalFlowFarneback(self.prevGray, grayFrame, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-        avgFlow = np.mean(flow)
+        avgFlow = np.mean(flow,axis=(0,1))
         cameraDeltaPos = -avgFlow
 
         robotLocalDeltaPos = self.__camera_rot_inv @ from_camera_coordinate(cameraDeltaPos)
