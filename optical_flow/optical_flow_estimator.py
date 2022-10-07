@@ -12,6 +12,7 @@ from localizer_base import LocalFrameEstimator, LocalFrameEstimatorImpl, NonBloc
 import cv2 as cv
 import numpy as np
 from .slidingwindow_filter import MovingWindowFilter
+import threading
 
 def from_camera_coordinate(camera_coord: np.ndarray) -> np.ndarray:
     assert camera_coord.shape == (2,)
@@ -23,7 +24,8 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         camera_rotation = np.array([0,0,0],dtype=np.float32),
         x_y_multiplier : typing.Union[float,np.ndarray] = 1.0,
         moving_window_size : int = 3,
-        VideoCapture : typing.Optional[cv.VideoCapture] = None
+        VideoCapture : typing.Optional[cv.VideoCapture] = None,
+        init_seperate_thread : bool = False
     ):
         super().__init__(
             "OpticalFlowVelocityEstimator", 
@@ -38,6 +40,14 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         self.setCameraRotation(camera_rotation)
         self.slidingWindow = MovingWindowFilter(moving_window_size, shape=(3,), weights=np.array([0.3,0.3,0.4]))
         self.update()
+        if init_seperate_thread and self.video is not None:
+            t = threading.Thread(target=self.seperateThreadUpdate)
+            t.start()
+    
+    def seperateThreadUpdate(self):
+        while True:
+            self.update()
+            time.sleep(0.05)
 
     def getCamerRotation(self) -> np.ndarray:
         return self.__camera_rot
@@ -85,5 +95,7 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
 
         self._call_local_velocity_update(np.concatenate([estimated_velocity.reshape((3,)), np.zeros((3,))]))
 
-
+    def updateWithFrameAsync(self, grayFrame: np.ndarray):
+        t = threading.Thread(target=self.updateWithFrame, args=(grayFrame,))
+        t.start()
 
