@@ -24,8 +24,9 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         camera_rotation = np.array([0,0,0],dtype=np.float32),
         x_y_multiplier : typing.Union[float,np.ndarray] = 1.0,
         moving_window_size : int = 3,
-        VideoCapture : typing.Optional[cv.VideoCapture] = None,
-        init_seperate_thread : bool = False
+        vid_cap : typing.Optional[cv.VideoCapture] = None,
+        init_seperate_thread : bool = False,
+        preview_window : bool = True
     ):
         super().__init__(
             "OpticalFlowVelocityEstimator", 
@@ -34,7 +35,8 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         )
 
         self.x_y_multiplier = x_y_multiplier
-        self.video = VideoCapture
+        self.video = vid_cap
+        self.preview_window = preview_window
         self.prevGray : typing.Optional[np.ndarray] = None
         self.prevGray_time : float = 0
         self.setCameraRotation(camera_rotation)
@@ -67,7 +69,27 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         if self.video is not None:
             ret, frame = self.video.read()
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-            self.updateWithFrame(gray)
+            flow = self.updateWithFrame(gray)
+
+            if self.preview_window and flow is not None:
+                magnitude, angle = cv.cartToPolar(flow[..., 0], flow[..., 1])
+                preview_mask = np.zeros_like(frame)
+                # Sets mask saturation to maximum
+                preview_mask[..., 1] = 255
+                preview_mask[..., 0] = angle * 180 / np.pi / 2
+      
+                # Sets image value according to the optical flow
+                # magnitude (normalized)
+                preview_mask[..., 2] = cv.normalize(magnitude, None, 0, 255, cv.NORM_MINMAX)
+                preview_mask = cv.cvtColor(preview_mask, cv.COLOR_HSV2BGR)
+
+                cv.imshow("Optical Flow Estimator Gray",gray)
+                cv.imshow("Dense Optical Flow", preview_mask)
+
+                if cv.waitKey(1) & 0xFF == ord('q'):
+                    self.preview_window = False
+                    cv.destroyAllWindows()
+            
     
     def updateWithFrame(self, grayFrame: np.ndarray):
         if self.prevGray is None:
@@ -94,6 +116,7 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         estimated_velocity = self.slidingWindow.get_average()
 
         self._call_local_velocity_update(np.concatenate([estimated_velocity.reshape((3,)), np.zeros((3,))]))
+        return flow
 
     def updateWithFrameAsync(self, grayFrame: np.ndarray):
         t = threading.Thread(target=self.updateWithFrame, args=(grayFrame,))
