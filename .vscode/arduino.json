@@ -1,0 +1,5 @@
+{
+    "sketch": "optical_flow\\hardware\\hardware_optical_flow_firmware\\hardware_optical_flow_firmware.ino",
+    "board": "arduino:avr:uno",
+    "programmer": "arduino:avrisp"
+}
