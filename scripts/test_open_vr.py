@@ -23,12 +23,12 @@ if __name__ == "__main__":
     while True:
         sys.stdout.flush()
         Tracker.update()
-        print("Location",Tracker.getLocation())
-        print("Velocity",Tracker.getVelocity())
-        print("Acceleration",Tracker.getAcceleration())
+        #print("Location",Tracker.getLocation())
+        #print("Velocity",Tracker.getVelocity())
+        #print("Acceleration",Tracker.getAcceleration())
         print("Local Velocity",Tracker.getLocalVelocity())
-        print("Local Acceleration",Tracker.getLocalAcceleration())
+        #print("Local Acceleration",Tracker.getLocalAcceleration())
         print("")
-        time.sleep(2)
+        time.sleep(0.1)
     
     openvr.shutdown()

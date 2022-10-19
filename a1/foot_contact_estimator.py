@@ -47,7 +47,7 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
                 # Only pick the jacobian related to joint motors
                 joint_velocities = motor_velocities[leg_id *3:(leg_id +1) * 3]
                 leg_velocity_in_base_frame = jacobian.dot(joint_velocities)
-                base_velocity_in_base_frame = -leg_velocity_in_base_frame[:3]
+                base_velocity_in_base_frame = from_a1_frame(leg_velocity_in_base_frame[:3]) #-leg_velocity_in_base_frame[:3]
                 foot_velocities.append(base_velocity_in_base_frame)
             else:
                 foot_velocities.append(np.zeros(3))
@@ -56,7 +56,7 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
 
         if len(foot_velocities) > 0:
             observed_v = np.mean(foot_velocities, axis=0)
-            transformed_v = from_a1_frame(observed_v)
+            transformed_v = observed_v #from_a1_frame(observed_v)
 
             self._call_local_velocity_update(
                 np.concatenate([transformed_v, np.zeros((3,))])

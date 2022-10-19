@@ -9,7 +9,7 @@ currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
 
-from localizer_base import GlobalFrameEstimatorImpl, NonBlocking, rotation_angle
+from localizer_base import GlobalFrameEstimatorImpl, NonBlocking, rotation_angle, rotation_matrix_inverse
 
 
 """
@@ -63,6 +63,7 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         self.trackedPoseArray = []
         self.device_index = device_index
         self.__lastLocalVelocityUpdate = 0
+        self._lastLocalVelocity = np.zeros((6,))
     
     @classmethod
     def getAvailableDeviceNameAndIndexes(cls,vrSystem : openvr.IVRSystem) -> typing.List[typing.Tuple[int,str]]:
@@ -131,33 +132,36 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
 
         rotation_matrix_raw = vr_pose[:, :3]
-        rotation_matrix_raw_inv = np.linalg.inv(rotation_matrix_raw)
+        #rotation_matrix_raw_inv = np.linalg.inv(rotation_matrix_raw)
         global_position_raw = vr_pose[:, 3]
         global_rotation_raw = rotation_angle(rotation_matrix_raw)
+        rotation_matrix_raw_inv = rotation_matrix_inverse(*global_rotation_raw)
 
         spaceVelocity_local_raw = rotation_matrix_raw_inv @  vr_spaceVelocity
         angularVelocity_local_raw = rotation_matrix_raw_inv @ vr_angularVelocity
 
         # print("raw coordinate position",global_position_raw,global_rotation_raw)
-        transformed_global_position = from_openvr_transform_matrix @ global_position_raw
-        transformed_global_rotation = from_openvr_transform_matrix @ global_rotation_raw
-        transformed_spaceVelocity_global = from_openvr_transform_matrix @ vr_spaceVelocity
-        transformed_angularVelocity_global = from_openvr_transform_matrix @ vr_angularVelocity
+        #transformed_global_position = from_openvr_transform_matrix @ global_position_raw
+        #transformed_global_rotation = from_openvr_transform_matrix @ global_rotation_raw
+        #transformed_spaceVelocity_global = from_openvr_transform_matrix @ vr_spaceVelocity
+        #transformed_angularVelocity_global = from_openvr_transform_matrix @ vr_angularVelocity
         transformed_spaceVelocity_local = from_openvr_transform_matrix @ spaceVelocity_local_raw
         transformed_angularVelocity_local = from_openvr_transform_matrix @ angularVelocity_local_raw
-        self._call_location_update(np.concatenate([transformed_global_position,transformed_global_rotation]).reshape((6,)))
-        self._call_velocity_update(np.concatenate([transformed_spaceVelocity_global,transformed_angularVelocity_global]).reshape((6,)))
+        #self._call_location_update(np.concatenate([transformed_global_position,transformed_global_rotation]).reshape((6,)))
+        #self._call_velocity_update(np.concatenate([transformed_spaceVelocity_global,transformed_angularVelocity_global]).reshape((6,)))
         
         localVelocity = np.concatenate([transformed_spaceVelocity_local,transformed_angularVelocity_local]).reshape((6,))
         
         #print("transformed coordinate position",transformed_global_position,transformed_global_rotation)
 
         ctime = time.time()
+        """
         if self.__lastLocalVelocityUpdate != 0:
             dt = ctime - self.__lastLocalVelocityUpdate
             self._lastLocalAcceleration = (localVelocity - self._lastLocalVelocity) / dt
             for callback in self._localAccelerationSubscribeList:
                 callback(self, self._lastLocalAcceleration)
+        """
 
         self._lastLocalVelocity = localVelocity
         self.__lastLocalVelocityUpdate = ctime
