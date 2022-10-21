@@ -1,5 +1,6 @@
 {
-    "sketch": "optical_flow\\hardware\\hardware_optical_flow_firmware\\hardware_optical_flow_firmware.ino",
+    "sketch": "optical_flow\\pmw_3901_board\\pmw_3901_firmware\\pwm_3901_firmware.ino",
     "board": "arduino:avr:uno",
-    "programmer": "arduino:avrisp"
+    "programmer": "arduino:avrisp",
+    "port": "COM5"
 }

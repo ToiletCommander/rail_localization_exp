@@ -2,7 +2,9 @@
 import collections
 import typing
 import numpy as np
-
+"""
+recalculation_period: -1 => never recalc, 0 => always recalc, >0 => recalc every recalculation_period seconds
+"""
 
 class ContinuousMovingWindowFilter:
     def __init__(self, window_size: float, recalculation_period : float = -1, shape = (3,)):
@@ -26,6 +28,7 @@ class ContinuousMovingWindowFilter:
                 self.values[0] = (front_size - c_remove_size, front_value)
             else:
                 self.values.popleft()
+            
             self.aggregated_size -= c_remove_size
             self.aggregated -= front_value * c_remove_size
             removed_size += c_remove_size
@@ -39,16 +42,16 @@ class ContinuousMovingWindowFilter:
         self.size_since_last_recalculation = 0.0
             
 
-    def add_observation(self, new_value_size : float, new_value: np.ndarray) -> None:
+    def add_observation(self, new_value_size : float, new_value: np.ndarray, new_aggregate_value :  typing.Optional[np.ndarray] = None) -> None:
         self.values.append((new_value_size, new_value))
-        self.aggregated += new_value * new_value_size
+        self.aggregated += new_value * new_value_size if new_aggregate_value is None else new_aggregate_value
         self.aggregated_size += new_value_size
         self.size_since_last_recalculation += new_value_size
         
         if self.aggregated_size > self.window_size:
             self.__remove_front_values(self.aggregated_size - self.window_size)
         
-        if self.recalculation_period > 0 and self.size_since_last_recalculation > self.recalculation_period:
+        if (self.recalculation_period > 0 and self.size_since_last_recalculation > self.recalculation_period) or self.recalculation_period == 0:
             self.__recalculate()
 
     

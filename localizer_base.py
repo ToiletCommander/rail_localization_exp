@@ -6,6 +6,13 @@ class NonBlocking:
     def update(self) -> None:
         return
 
+class Parallel:
+    def __init__(self):
+        self._running = True
+    
+    def stop(self) -> None:
+        self._running = False
+
 
 """
 Note: The ordering of location/velocity/acceleration is: [x, y, z, degX, degY, degZ]
