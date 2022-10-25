@@ -13,7 +13,7 @@ parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, currentdir)
 os.sys.path.insert(0, parentdir)
 
-from localizer_base import GlobalFrameEstimatorImpl, LocalFrameEstimatorImpl, NonBlocking, rotation_angle_from_quaternion, rotation_matrix, rotation_matrix_and_inverse_rotation_matrix, rotation_matrix_inverse
+from localizer_base import GlobalFrameEstimatorImpl, LocalFrameEstimatorImpl, NonBlocking, rotation_angle_from_quaternion, rotation_matrix, rotation_matrix_and_inverse_rotation_matrix, rotation_matrix_inverse, wrap_angle_rad
 from robot_interface import RobotInterface # pytype: disable=import-error
 
 
@@ -26,11 +26,14 @@ def getFootContacts(raw_state, thereshold : float = 20) -> np.ndarray:
 def getMotorVelocities(raw_state) -> np.ndarray:
     return np.array([motor.dq for motor in raw_state.motorState[:12]])
 
-def getMotorAngles(raw_state) -> np.ndarray:
+def getTrueMotorAngles(raw_state) -> np.ndarray:
     return np.array([motor.q for motor in raw_state.motorState[:12]])
 
+def getMotorAngles(raw_state) -> np.ndarray:
+    return wrap_angle_rad(getTrueMotorAngles(raw_state))
+
 def getJointStates(raw_state) -> np.ndarray:
-    return list(zip(getMotorAngles(raw_state), getMotorVelocities(raw_state)))
+    return list(zip(getTrueMotorAngles(raw_state), getMotorVelocities(raw_state)))
 
 def getMotorTemperatures(raw_state) -> np.ndarray:
     return np.array([motor.temperature for motor in raw_state.motorState[:12]])
@@ -64,20 +67,24 @@ def analytical_leg_jacobian(leg_angles, leg_id):
 
     t1, t2, t3 = leg_angles[0], leg_angles[1], leg_angles[2]
     l_eff = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(t3))
+
     t_eff = t2 + t3 / 2
+    st1 = np.sin(t1)
+    ct1 = np.cos(t1)
+    st_eff = np.sin(t_eff)
+    ct_eff = np.cos(t_eff)
+    st3 = np.sin(t3)
+
     J = np.zeros((3, 3))
     J[0, 0] = 0
-    J[0, 1] = -l_eff * np.cos(t_eff)
-    J[0, 2] = l_low * l_up * np.sin(t3) * np.sin(
-        t_eff) / l_eff - l_eff * np.cos(t_eff) / 2
-    J[1, 0] = -l_hip * np.sin(t1) + l_eff * np.cos(t1) * np.cos(t_eff)
-    J[1, 1] = -l_eff * np.sin(t1) * np.sin(t_eff)
-    J[1, 2] = -l_low * l_up * np.sin(t1) * np.sin(t3) * np.cos(
-        t_eff) / l_eff - l_eff * np.sin(t1) * np.sin(t_eff) / 2
-    J[2, 0] = l_hip * np.cos(t1) + l_eff * np.sin(t1) * np.cos(t_eff)
-    J[2, 1] = l_eff * np.sin(t_eff) * np.cos(t1)
-    J[2, 2] = l_low * l_up * np.sin(t3) * np.cos(t1) * np.cos(
-        t_eff) / l_eff + l_eff * np.sin(t_eff) * np.cos(t1) / 2
+    J[0, 1] = -l_eff * ct_eff
+    J[0, 2] = l_low * l_up * st3 * st_eff / l_eff - l_eff * ct_eff / 2
+    J[1, 0] = -l_hip * st1 + l_eff * ct1 * ct_eff
+    J[1, 1] = -l_eff * st1 * st_eff
+    J[1, 2] = -l_low * l_up * st1 * st3 * ct_eff / l_eff - l_eff * st1 * st_eff / 2
+    J[2, 0] = l_hip * ct1 + l_eff * st1 * ct_eff
+    J[2, 1] = l_eff * st_eff * ct1
+    J[2, 2] = l_low * l_up * st3 * ct1 * ct_eff / l_eff + l_eff * st_eff * ct1 / 2
     return J
 
 

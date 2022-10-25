@@ -1,6 +1,7 @@
 import typing
 import numpy as np
 import time
+import math
 
 class NonBlocking:
     def update(self) -> None:
@@ -230,9 +231,19 @@ def coordinate_transform_to_local(
         wrap_angle_rad(int_rst[:,1])
     ]).reshape(6,)
 
-def wrap_angle_rad(angle: float) -> float: # Wrap angle to [-pi, pi]
-    return angle % (2 * np.pi)
-
+def wrap_angle_rad(angle : typing.Union[float, np.ndarray]) -> typing.Union[float, np.ndarray]: # Wrap angle to [-pi, pi)
+    if isinstance(angle, np.ndarray):
+        angle = angle % (2 * np.pi)
+        angle[angle >= np.pi] -= 2 * np.pi
+        angle[angle < -np.pi] += 2 * np.pi
+        return angle
+    else:
+        angle = angle % (2 * np.pi)
+        if angle >= np.pi:
+            angle -= 2 * np.pi
+        elif angle < -np.pi:
+            angle += 2 * np.pi
+        return angle
 
 class LocalFrameEstimator:
     def reset(self) -> None:

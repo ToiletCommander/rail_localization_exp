@@ -43,7 +43,7 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         
         for leg_id in range(4):
             if foot_contact[leg_id]:
-                jacobian = getLegJacobian(leg_id, motor_velocities)
+                jacobian = getLegJacobian(leg_id, motor_angles)
                 # Only pick the jacobian related to joint motors
                 joint_velocities = motor_velocities[leg_id *3:(leg_id +1) * 3]
                 leg_velocity_in_base_frame = jacobian.dot(joint_velocities)
