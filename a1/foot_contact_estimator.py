@@ -1,22 +1,33 @@
+import time
 import typing
 import numpy as np
 from localizer_base import LocalFrameEstimatorImpl, NonBlocking
 from .robot import RobotInterface, from_a1_frame, getImuRollPitchYaw, getFootContacts, getMotorVelocities, getMotorAngles, getLegJacobian, getAndInitRobotInterface as initRobot
+from optical_flow.continuous_slidingwindow_filter import ContinuousMovingWindowFilter
 
 class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
     @classmethod
     def getAndInitRobotInterface(cls) -> RobotInterface:
         return initRobot()
 
-    def __init__(self, robot_intf : typing.Optional[RobotInterface]):
+    def __init__(
+        self, 
+        sliding_window_filter : typing.Optional[ContinuousMovingWindowFilter], 
+        robot_intf : typing.Optional[RobotInterface]
+    ):
         super().__init__(
             __class__.__name__, 
             autoUpdateVelocity = False, 
-            autoUpdateAcceleration = True
+            autoUpdateAcceleration = False
         )
 
         self.robot = robot_intf
         self.reset()
+        self.filter = sliding_window_filter
+        self._lastFootContact = np.array([False, False, False, False])
+        self._lastMotorVelocities = np.zeros((12,))
+        self._lastMotorAngles = np.zeros((12,))
+        self._lastVUpdate = time.time()
         self.update()
     
     def reset(self):
@@ -24,8 +35,6 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         self._lastMotorVelocities = np.zeros((12,))
         self._lastMotorAngles = np.zeros((12,))
         
-
-    
     def update(self):
         if self.robot is not None:
             self.updateFromObservation(self.robot.receive_observation())
@@ -62,7 +71,14 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
 
         if len(foot_velocities) > 0:
             observed_v = np.mean(foot_velocities, axis=0)
-            transformed_v = observed_v #from_a1_frame(observed_v)
+            if self.filter is not None:
+                ctime = time.time()
+                dt = ctime - self._lastVUpdate
+                self.filter.add_observation(dt,observed_v)
+                transformed_v = self.filter.get_per_size_average()
+                self._lastVUpdate = ctime
+            else:
+                transformed_v = observed_v
 
             self._call_local_velocity_update(
                 np.concatenate([transformed_v, np.zeros((3,))])
