@@ -25,6 +25,7 @@ class BitcrazeHardwareEstimator(LocalFrameEstimatorImpl):
         self.update()
         if seperate_thread:
             t = threading.Thread(target=self.seperateThreadUpdate)
+            t.daemon = True
             t.start()
         self.sliding_window_filter = sliding_window_filter
         self.x_multiplier = x_multiplier

@@ -165,9 +165,7 @@ class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
         self._lastLocalVelocity = localVelocity
         self.__lastLocalVelocityUpdate = ctime
-        for callback in self._localVelocitySubscribeList:
-            callback(self, localVelocity)
-
+    
     @classmethod
     def getOpenVRTrackerFromViveTracker(cls) -> typing.Optional[typing.Any]:
         vrSys = openvr.init(openvr.VRApplication_Other)

@@ -44,6 +44,7 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         self.update()
         if init_seperate_thread and self.video is not None:
             t = threading.Thread(target=self.seperateThreadUpdate)
+            t.daemon = True
             t.start()
     
     def seperateThreadUpdate(self):
@@ -117,8 +118,3 @@ class OpticalFlowVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
 
         self._call_local_velocity_update(np.concatenate([estimated_velocity.reshape((3,)), np.zeros((3,))]))
         return flow
-
-    def updateWithFrameAsync(self, grayFrame: np.ndarray):
-        t = threading.Thread(target=self.updateWithFrame, args=(grayFrame,))
-        t.start()
-

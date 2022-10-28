@@ -15,11 +15,13 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         sliding_window_filter : typing.Optional[ContinuousMovingWindowFilter], 
         robot_intf : typing.Optional[RobotInterface]
     ):
-        super().__init__(
-            __class__.__name__, 
+        LocalFrameEstimatorImpl.__init__(
+            self, 
+            name = "A1FootContactLocalVelocityEstimator",
             autoUpdateVelocity = False, 
             autoUpdateAcceleration = False
         )
+        NonBlocking.__init__(self)
 
         self.robot = robot_intf
         self.reset()
@@ -34,6 +36,7 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         self._lastFootContact = np.array([False, False, False, False])
         self._lastMotorVelocities = np.zeros((12,))
         self._lastMotorAngles = np.zeros((12,))
+        super().reset()
         
     def update(self):
         if self.robot is not None:

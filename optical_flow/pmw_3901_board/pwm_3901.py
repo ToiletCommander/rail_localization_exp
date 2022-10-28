@@ -36,6 +36,7 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
         
         if parallel:
             t = threading.Thread(target=self.seperateThreadUpdate)
+            t.daemon = True
             t.start()
     
     
