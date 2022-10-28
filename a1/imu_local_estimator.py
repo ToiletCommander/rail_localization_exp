@@ -28,7 +28,15 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
     def getAndInitRobotInterface(cls) -> RobotInterface:
         return initRobot()
 
-    def __init__(self, robot_intf : typing.Optional[RobotInterface], calibrate_gravity : bool = True) -> None:
+    def __init__(
+        self, 
+        robot_intf : typing.Optional[RobotInterface], 
+        calibrate_gravity : bool = True,
+        integrate_linear_velocity : bool = True,
+        integrate_linear_location : bool = False,
+        diff_angular_velocity : bool = False,
+        diff_angular_accel : bool = False,
+    ) -> None:
         GlobalFrameEstimatorImpl.__init__(
             self,
             "A1RobotIMUEstimator",
@@ -39,6 +47,11 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             autoUpdateLocalAcceleration=False
         )
         self.robot = robot_intf
+
+        self.integrate_linear_velocity = integrate_linear_velocity
+        self.integrate_linear_location = integrate_linear_location
+        self.diff_angular_velocity = diff_angular_velocity
+        self.diff_angular_accel = diff_angular_accel
 
         self.reset()
 
@@ -72,39 +85,41 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         self._lastGlobalLinearLocationUpdate : float = ctime
     
     def getLinearVelocityWithNewLinearAcceleration(self, new_linear_acceleration : np.ndarray, ctime : float) -> np.ndarray:
+        if not self.integrate_linear_velocity:
+            return None
+        
         dt = ctime - self._lastGlobalLinearAccelerationUpdate
-        ret = self._lastGlobalLinearVelocity + (new_linear_acceleration + self._lastGlobalLinearAcceleration) / 2.0 * dt
+        ret = self._lastGlobalLinearVelocity + new_linear_acceleration * dt
         return ret
     
     def getLinearLocationWithNewLinearVelocity(self, new_linear_velocity : np.ndarray, ctime : float) -> np.ndarray:
+        if not self.integrate_linear_location:
+            return None
+        
         dt = ctime - self._lastGlobalLinearVelocityUpdate
-        ret = self._lastGlobalLinearLocation + (new_linear_velocity + self._lastGlobalLinearVelocity) / 2.0 * dt
+        ret = self._lastGlobalLinearLocation + new_linear_velocity * dt
         return ret
     
     def getAngularVelocityWithNewAngularLocation(self, new_angular_location : np.ndarray, ctime : float) -> typing.Optional[np.ndarray]:
+        if not self.diff_angular_velocity or self._lastGlobalAngularLocationUpdate == 0:
+            return None
+
         dt = ctime - self._lastGlobalAngularLocationUpdate
-
-        ret : typing.Optional[np.ndarray] = None
-
-        if self._lastGlobalAngularLocationUpdate != 0:
-            ret = (new_angular_location - self._lastGlobalAngularLocation) / dt
-        
+        ret = (new_angular_location - self._lastGlobalAngularLocation) / dt
         return ret
     
     def getAngularAccelerationWithNewAngularVelocity(self, new_angular_velocity : np.ndarray, ctime : float) -> typing.Optional[np.ndarray]:
-        dt = ctime - self._lastGlobalAngularVelocityUpdate
-
-        ret = None
-
-        if new_angular_velocity is not None and self._lastGlobalAngularVelocityUpdate != 0:
-            ret = (new_angular_velocity - self._lastGlobalAngularVelocity) / dt
+        if not self.diff_angular_accel or new_angular_velocity is None or self._lastGlobalAngularVelocityUpdate == 0:
+            return None
         
+        dt = ctime - self._lastGlobalAngularVelocityUpdate
+        ret = (new_angular_velocity - self._lastGlobalAngularVelocity) / dt
         return ret
     
     def getAngularLocation(self) -> typing.Optional[np.ndarray]:
         return self._lastGlobalAngularLocation if self._lastGlobalAngularLocationUpdate != 0 else None
         
-    def calibrate_for_gravity(self, duration_to_take_mean : float = 2.0) -> None:
+    def calibrate_for_gravity(self, duration_to_take_mean : float = 2.0, sleep_duration : float = 0.02) -> None:
         if self.robot is None:
             return
         
@@ -116,6 +131,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
         while True:
             ctime = time.time()
             dt = ctime - last_time
+            last_time = ctime
             if ctime - start_time >= duration_to_take_mean:
                 break
 
@@ -136,7 +152,7 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             sum_of_gravity += accelerometer_reading_global * dt
             total_dt += dt
 
-            time.sleep(0.05)
+            time.sleep(sleep_duration)
 
         gravity = sum_of_gravity / total_dt
         print("Gravity is", gravity)
@@ -220,10 +236,17 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
             ctime
         )
         
-        if global_linear_location is not None:
-            self._call_location_update(np.concatenate((global_linear_location, global_angular_location)))
+        if global_linear_location is None:
+            global_linear_location = np.zeros((3,))
+        
+        self._call_location_update(np.concatenate((global_linear_location, global_angular_location)))
 
-        if global_linear_velocity is not None and global_angular_velocity is not None:
+        if global_linear_velocity is not None or global_angular_velocity is not None:
+            if global_angular_velocity is None:
+                global_angular_velocity = np.zeros((3,))
+            if global_linear_velocity is None:
+                global_linear_velocity = np.zeros((3,))
+
             global_velocity = np.concatenate((global_linear_velocity, global_angular_velocity))
             self._call_velocity_update(global_velocity)
 
@@ -235,7 +258,12 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
 
             self._call_local_velocity_update(local_velocity)
         
-        if global_linear_acceleration is not None and global_angular_acceleration is not None:
+        if global_linear_acceleration is not None or global_angular_acceleration is not None:
+            if global_angular_acceleration is None:
+                global_angular_acceleration = np.zeros((3,))
+            if global_linear_acceleration is None:
+                global_linear_acceleration = np.zeros((3,))
+
             global_acceleration = np.concatenate((global_linear_acceleration, global_angular_acceleration))
             self._call_acceleration_update(global_acceleration)
             local_linear_acceleration = from_a1_frame(calibrated_accelerometer_raw_reading)
@@ -244,5 +272,3 @@ class A1RobotIMULocalEstimator(GlobalFrameEstimatorImpl, NonBlocking):
                 local_linear_acceleration
             ))
             self._call_local_acceleration_update(local_acceleration)
-
-            

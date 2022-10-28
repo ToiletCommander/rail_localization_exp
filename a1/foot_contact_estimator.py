@@ -16,9 +16,15 @@ class A1FootContactLocalVelocityEstimator(LocalFrameEstimatorImpl, NonBlocking):
         )
 
         self.robot = robot_intf
+        self.reset()
+        self.update()
+    
+    def reset(self):
         self._lastFootContact = np.array([False, False, False, False])
         self._lastMotorVelocities = np.zeros((12,))
         self._lastMotorAngles = np.zeros((12,))
+        
+
     
     def update(self):
         if self.robot is not None:
