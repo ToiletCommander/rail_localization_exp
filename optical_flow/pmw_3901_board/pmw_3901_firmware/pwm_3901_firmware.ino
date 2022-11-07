@@ -1,9 +1,16 @@
 #include <Bitcraze_PMW3901.h>
+#include <HCSR04.h>
 #define PMW3901_CS 10
+#define DIST_TRIG 6
+#define DIST_ECHO 7
 #define UPDATE_SERIAL_WAIT 5
 
+//https://github.com/gamegine/HCSR04-ultrasonic-sensor-lib
+
 Bitcraze_PMW3901 onboard_flow_sensor(PMW3901_CS);
+HCSR04 ultrasonic_sensor(DIST_TRIG, DIST_ECHO);
 unsigned long lastUpdate = 0UL;
+
 
 
 void setup(){
@@ -31,6 +38,9 @@ void loop() {
     Serial.read(); //Read an arbitrary byte sent by the host
     delay(UPDATE_SERIAL_WAIT);
   }
+
+  float dist_cm = ultrasonic_sensor.dist();
+
   int16_t dx = 0, dy = 0;
   unsigned long ct = millis();
   unsigned long dt = ct - lastUpdate;
@@ -40,6 +50,8 @@ void loop() {
   Serial.print(dx);
   Serial.print(",");
   Serial.print(dy);
+  Serial.print(",");
+  Serial.print(dist_cm);
   Serial.print(",");
   Serial.println(dt);
   Serial.flush();

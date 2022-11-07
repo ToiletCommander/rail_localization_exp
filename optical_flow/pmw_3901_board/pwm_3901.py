@@ -7,13 +7,9 @@ import threading
 from optical_flow.continuous_slidingwindow_filter import ContinuousMovingWindowFilter
 import numpy as np
 
-def constant_distance(distance : float) -> float:
-    return (lambda: distance)
-
 class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
     def __init__(
         self, 
-        dist_estimator : typing.Callable[[], float] = constant_distance(0.1),
         x_multiplier : float = 1.0,
         y_multiplier : float = 1.0,
         serial_port : str = "COM3", 
@@ -26,7 +22,6 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
         Parallel.__init__(self, parallel_wait_time)
 
         self.ser = serial.Serial(serial_port, serial_baudrate, timeout=1.0)
-        self.dist_estimator = dist_estimator
         self.sliding_window_filter = sliding_window_filter
         self.x_multiplier = x_multiplier
         self.y_multiplier = y_multiplier
@@ -40,7 +35,7 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
             t.start()
     
     
-    def processLine(self, line : str, dist : float, update_v : bool = False) -> None:
+    def processLine(self, line : str, update_v : bool = False) -> None:
         if line == "":
             return
         
@@ -52,7 +47,9 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
             spLi = line.split(",")
             dx_px = float(spLi[0])
             dy_px = float(spLi[1])
-            obs_dt_ms = float(spLi[2])
+            dist_cm = float(spLi[2])
+            obs_dt_ms = float(spLi[3])
+            dist = dist_cm / 100.0
             obs_dt = obs_dt_ms / 1000.0
         except:
             print("Optical Flow reported unreadable data")
@@ -82,15 +79,13 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
             self.ser.write(b'\x02') #write arbitrary byte
             self.ser.flush()
 
-            dist_est = self.dist_estimator()
-
             lines = self.ser.read_all().decode("ascii").split("\n") #self.ser.readline()
 
             while len(lines) > 0 and lines[-1].strip() == "":
                 lines = lines[:-1]
             
             for idx, line in enumerate(lines):
-                self.processLine(line, dist_est, update_v=(idx == len(lines) - 1))
+                self.processLine(line, update_v=(idx == len(lines) - 1))
         else:
             print("Serial port is not opened, reopening...")
             self.ser.open()

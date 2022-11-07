@@ -1,8 +1,13 @@
 #include <Bitcraze_PMW3901.h>
+#include <HCSR04.h>
 #define PMW3901_CS 10
+#define DIST_TRIG 6
+#define DIST_ECHO 7
 #define UPDATE_SERIAL_WAIT 100
 
 Bitcraze_PMW3901 onboard_flow_sensor(PMW3901_CS);
+HCSR04 ultrasonic_sensor(DIST_TRIG, DIST_ECHO);
+
 unsigned long lastUpdate = 0UL;
 long total_dx = 0L;
 long total_dy = 0L;
@@ -36,6 +41,8 @@ void loop() {
     total_dx = 0L;
     total_dy = 0L;
   }
+
+  float dist_cm = ultrasonic_sensor.dist();
   
   unsigned long ct = millis();
   unsigned long dt = ct - lastUpdate;
@@ -44,6 +51,8 @@ void loop() {
   total_dx += dx;
   total_dy += dy;
 
+  Serial.print(dist_cm);
+  Serial.print(",");
   Serial.print(dx);
   Serial.print(",");
   Serial.print(dy);
