@@ -1,6 +1,0 @@
-{
-    "sketch": "optical_flow\\pmw_3901_board\\pwm_3901_tuner\\pwm_3901_tuner.ino",
-    "board": "arduino:avr:uno",
-    "programmer": "arduino:avrisp",
-    "port": "COM5"
-}
