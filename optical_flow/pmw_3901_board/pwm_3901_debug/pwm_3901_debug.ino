@@ -6,11 +6,8 @@
 #define UPDATE_SERIAL_WAIT 100
 
 Bitcraze_PMW3901 onboard_flow_sensor(PMW3901_CS);
-HCSR04 ultrasonic_sensor(DIST_TRIG, DIST_ECHO);
 
 unsigned long lastUpdate = 0UL;
-long total_dx = 0L;
-long total_dy = 0L;
 int frame[35*35];
 
 void setup(){
@@ -27,43 +24,29 @@ void setup(){
       delay(1000);
     }
   }
+  onboard_flow_sensor.enableFrameBuffer();
   lastUpdate = millis();
 }
 
 void loop() {
-  int16_t dx = 0, dy = 0;
-
   if(Serial.available() > 0){
     while(Serial.available() > 0){
       Serial.read();
-      onboard_flow_sensor.readMotionCount(&dx, &dy);
       delay(UPDATE_SERIAL_WAIT);
     }
-    total_dx = 0L;
-    total_dy = 0L;
+  }else{
+    return;
   }
 
-  float dist_cm = ultrasonic_sensor.dist();
-  
-  unsigned long ct = millis();
-  unsigned long dt = ct - lastUpdate;
+  Serial.println("Reading...");
+  onboard_flow_sensor.readFrameBuffer((char*) frame);
+  Serial.println("====================================");
 
-  onboard_flow_sensor.readMotionCount(&dx, &dy);
-  total_dx += dx;
-  total_dy += dy;
-
-  Serial.print(dist_cm);
-  Serial.print(",");
-  Serial.print(dx);
-  Serial.print(",");
-  Serial.print(dy);
-  Serial.print(",");
-  Serial.print(dt);
-  Serial.print(",");
-  Serial.print(total_dx);
-  Serial.print(",");
-  Serial.println(total_dy);
+  for (int i = 0; i < 35*35; i++){
+    Serial.print(frame[i]);
+    Serial.print(",");
+  }
+  Serial.println("====================================");
   Serial.flush();
-  lastUpdate = ct;
   delay(50);
 }
