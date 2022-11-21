@@ -16,13 +16,15 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
         serial_baudrate : int = 115200, 
         parallel : bool = False, 
         parallel_wait_time : float = 0.02,
-        sliding_window_filter : typing.Optional[ContinuousMovingWindowFilter] = None
+        sliding_window_filter : typing.Optional[ContinuousMovingWindowFilter] = None,
+        dist_cm_sliding_window : typing.Optional[ContinuousMovingWindowFilter] = None
     ) -> None:
         LocalFrameEstimatorImpl.__init__(self,name="PWM3901HardwareEstimator", autoUpdateVelocity=False, autoUpdateAcceleration=True)
         Parallel.__init__(self, parallel_wait_time)
 
         self.ser = serial.Serial(serial_port, serial_baudrate, timeout=1.0)
         self.sliding_window_filter = sliding_window_filter
+        self.dist_cm_sliding_window = dist_cm_sliding_window
         self.x_multiplier = x_multiplier
         self.y_multiplier = y_multiplier
         self.last_hardware_dt = 0.0
@@ -33,6 +35,13 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
             t = threading.Thread(target=self.seperateThreadUpdate)
             t.daemon = True
             t.start()
+    
+    def getDistEstimate(self, dist_cm : float, dt : float) -> float:
+        if self.dist_cm_sliding_window is not None:
+            self.dist_cm_sliding_window.add_observation(dt, dist_cm)
+            return self.dist_cm_sliding_window.get_per_size_average()
+        else:
+            return dist_cm
     
     
     def processLine(self, line : str, update_v : bool = False) -> None:
@@ -47,10 +56,13 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
             spLi = line.split(",")
             dx_px = float(spLi[0])
             dy_px = float(spLi[1])
-            dist_cm = float(spLi[2])
+            dist_cm_raw = float(spLi[2])
             obs_dt_ms = float(spLi[3])
-            dist = dist_cm / 100.0
             obs_dt = obs_dt_ms / 1000.0
+
+
+            dist_cm = self.getDistEstimate(dist_cm_raw, obs_dt_ms / 1000.0)
+            dist = dist_cm / 100.0
         except:
             print("Optical Flow reported unreadable data")
             return
