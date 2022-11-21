@@ -2,8 +2,8 @@ import time
 from optical_flow.pmw_3901_board.pwm_3901 import PWM3901HardwareEstimator
 from optical_flow.continuous_slidingwindow_filter import ContinuousMovingWindowFilter
 
-X_MULTIPLIER = 1
-Y_MULTIPLIER = 1
+X_MULTIPLIER = 0.002667847599121442 #Tuned on 2022-11-21
+Y_MULTIPLIER = 0.002667847599121442
 SERIAL_PORT = "/dev/ttyACM0"
 BAUD_RATE = 115200
 SEPERATE_THREAD = True
