@@ -1,35 +1,39 @@
 import time
-from optical_flow.pmw_3901_board.pwm_3901 import PWM3901HardwareEstimator, constant_distance
+from optical_flow.pmw_3901_board.pwm_3901 import PWM3901HardwareEstimator
 from optical_flow.continuous_slidingwindow_filter import ContinuousMovingWindowFilter
 
-X_MULTIPLIER = 0.002
-Y_MULTIPLIER = 0.002
-SERIAL_PORT = "COM5"
+X_MULTIPLIER = 1
+Y_MULTIPLIER = 1
+SERIAL_PORT = "/dev/ttyACM0"
 BAUD_RATE = 115200
 SEPERATE_THREAD = True
-DIST_EST = constant_distance(0.2)
 FILTER = ContinuousMovingWindowFilter(
     window_size=0.1,
     recalculation_period=0.0, #recalculate mean every time
     shape=(2,)
 )
+DIST_FILTER = ContinuousMovingWindowFilter(
+    window_size=0.2,
+    recalculation_period=0.0,
+    shape=()
+)
 
-estimator = PWM3901HardwareEstimator(
-    dist_estimator=DIST_EST,
+pwm3901_estimator = PWM3901HardwareEstimator(
     x_multiplier=X_MULTIPLIER,
     y_multiplier=Y_MULTIPLIER,
     serial_port=SERIAL_PORT,
     serial_baudrate=BAUD_RATE,
     parallel=SEPERATE_THREAD,
-    sliding_window_filter=FILTER
+    sliding_window_filter=FILTER,
+    dist_cm_sliding_window=DIST_FILTER
 )
 
 try:
     while True:
         if not(SEPERATE_THREAD):
-            estimator.update()
+            pwm3901_estimator.update()
         
-        print(estimator.last_hardware_dt, estimator.getLocalVelocity())
+        print(pwm3901_estimator.last_hardware_dt, pwm3901_estimator.getLocalVelocity())
         time.sleep(0.2)
 except KeyboardInterrupt:
-    estimator.stop()
+    pwm3901_estimator.stop()
