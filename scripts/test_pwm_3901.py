@@ -1,6 +1,8 @@
 import time
 from optical_flow.pmw_3901_board.pwm_3901 import PWM3901HardwareEstimator
 from optical_flow.continuous_slidingwindow_filter import ContinuousMovingWindowFilter
+from localizer_base import LocalCoordinateTransformedEstimatorImpl
+import numpy as np
 
 X_MULTIPLIER = 0.002667847599121442 #Tuned on 2022-11-21
 Y_MULTIPLIER = 0.002667847599121442
@@ -28,12 +30,19 @@ pwm3901_estimator = PWM3901HardwareEstimator(
     dist_cm_sliding_window=DIST_FILTER
 )
 
+transformed_est = LocalCoordinateTransformedEstimatorImpl(
+    pwm3901_estimator,
+    np.array([0, -1, 0],dtype=np.float),
+    np.array([-1, 0, 0],dtype=np.float),
+    np.array([0,0,1], dtype=np.float)
+)
+
 try:
     while True:
         if not(SEPERATE_THREAD):
             pwm3901_estimator.update()
         
-        print(pwm3901_estimator.last_hardware_dt, pwm3901_estimator.getLocalVelocity())
+        print(pwm3901_estimator.last_hardware_dt, transformed_est.getLocalVelocity())
         time.sleep(0.2)
 except KeyboardInterrupt:
     pwm3901_estimator.stop()
