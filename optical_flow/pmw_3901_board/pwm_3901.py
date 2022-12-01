@@ -16,7 +16,7 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
         serial_baudrate : int = 115200, 
         parallel : bool = False, 
         parallel_wait_time : float = 0.02,
-        serial_wait_time : float = 0.02,
+        serial_wait_time : float = 0.005,
         sliding_window_filter : typing.Optional[ContinuousMovingWindowFilter] = None,
         dist_cm_sliding_window : typing.Optional[ContinuousMovingWindowFilter] = None
     ) -> None:

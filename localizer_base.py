@@ -8,7 +8,7 @@ class NonBlocking:
         return
 
 class Parallel:
-    def __init__(self, wait_time : float = 0.02) -> None:
+    def __init__(self, wait_time : float = 0.01) -> None:
         self._running = True
         self.parallel_wait_time = wait_time
     
