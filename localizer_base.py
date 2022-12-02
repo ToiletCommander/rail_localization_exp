@@ -261,7 +261,7 @@ class LocalFrameEstimatorImpl(LocalFrameEstimator):
         self.autoUpdateVelocity = autoUpdateVelocity
         self.autoUpdateAcceleration = autoUpdateAcceleration
 
-        self.reset()
+        LocalFrameEstimatorImpl.reset(self)
     
     def __str__(self) -> str:
         return self.name + "(LocalFrameEstimatorImpl)"
@@ -348,7 +348,7 @@ class GlobalFrameEstimatorImpl(LocalFrameEstimator):
         self.autoupdateLocalVelocity = autoUpdateLocalVelocity
         self.autoUpdateLocalAcceleration = autoUpdateLocalAcceleration
 
-        self.reset()
+        GlobalFrameEstimatorImpl.reset(self)
 
     def __str__(self) -> str:
         return self.name + "(GlobalFrameEstimatorImpl)"

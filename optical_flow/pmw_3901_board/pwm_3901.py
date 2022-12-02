@@ -16,7 +16,7 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
         serial_baudrate : int = 115200, 
         parallel : bool = False, 
         parallel_wait_time : float = 0.02,
-        serial_wait_time : float = 0.005,
+        serial_wait_time : float = 0.05,
         sliding_window_filter : typing.Optional[ContinuousMovingWindowFilter] = None,
         dist_cm_sliding_window : typing.Optional[ContinuousMovingWindowFilter] = None
     ) -> None:
@@ -51,6 +51,14 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
             return self.sliding_window_filter.get_per_size_average()
         else:
             return obs_v
+    
+    def reset(self) -> None:
+        if self.ser.isOpen():
+            self.ser.read_all()
+        else:
+            print("Serial port is not opened, reopening...")
+            self.ser.open()
+        super().reset()
 
     def processLine(self, line : str, update_v : bool = False) -> None:
         if line == "":
@@ -72,7 +80,7 @@ class PWM3901HardwareEstimator(LocalFrameEstimatorImpl, NonBlocking, Parallel):
             dist_cm = self.getDistEstimate(dist_cm_raw, obs_dt_ms / 1000.0)
             dist = dist_cm / 100.0
         except:
-            print("Optical Flow reported unreadable data")
+            print("Optical Flow reported unreadable data", line)
             return
 
         dx_scaled = dx_px * self.x_multiplier * dist

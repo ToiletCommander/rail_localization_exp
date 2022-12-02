@@ -38,14 +38,14 @@ openVR_Z = -our_Y
 
 from_openvr_transform_matrix = np.array([
     [1, 0, 0],
-    [0, 0, -1],
-    [0, 1, 0]
+    [0, -1, 0],
+    [0, 0, -1]
 ])
 
 to_openvr_transform_matrix = np.array([
     [1, 0, 0],
-    [0, 0, 1],
-    [0, -1, 0]
+    [0, -1, 0],
+    [0, 0, -1]
 ])
 
 class OpenVRGlobalFrameEstimator(GlobalFrameEstimatorImpl, NonBlocking):
