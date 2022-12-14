@@ -20,15 +20,17 @@ if __name__ == "__main__":
         exit(1)
     
     Tracker = openvr_localizer.OpenVRGlobalFrameEstimator(vrSys, device_index)
-    while True:
-        sys.stdout.flush()
-        Tracker.update()
-        #print("Location",Tracker.getLocation())
-        #print("Velocity",Tracker.getVelocity())
-        #print("Acceleration",Tracker.getAcceleration())
-        print("Local Velocity",Tracker.getLocalVelocity())
-        #print("Local Acceleration",Tracker.getLocalAcceleration())
-        print("")
-        time.sleep(0.1)
-    
-    openvr.shutdown()
+    try:
+        while True:
+            sys.stdout.flush()
+            Tracker.update()
+            #print("Location",Tracker.getLocation())
+            #print("Velocity",Tracker.getVelocity())
+            #print("Acceleration",Tracker.getAcceleration())
+            print("Local Velocity",Tracker.getLocalVelocity())
+            #print("Local Acceleration",Tracker.getLocalAcceleration())
+            print("")
+            time.sleep(0.1)
+
+    finally:
+        openvr.shutdown()

@@ -6,6 +6,9 @@ import math
 class NonBlocking:
     def update(self) -> None:
         return
+    
+    def stop(self) -> None:
+        return
 
 class Parallel:
     def __init__(self, wait_time : float = 0.01) -> None:
