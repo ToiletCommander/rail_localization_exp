@@ -9,7 +9,6 @@ import os
 import re
 import sys
 import time
-import pybullet
 import numpy as np
 
 currentdir = os.path.dirname(
@@ -32,6 +31,18 @@ _robot_interface = RobotInterface()
 _robot_interface.send_command(np.zeros(60, dtype=np.float32))
 #pybullet_client = pybullet.connect(pybullet.GUI)
 
+import pybullet  # pytype: disable=import-error
+import pybullet_data as pd
+import pybullet_utils.bullet_client as bullet_client
+
+_pybullet_client = bullet_client.BulletClient(
+                connection_mode=pybullet.DIRECT)
+_pybullet_client.resetSimulation()
+_pybullet_client.setPhysicsEngineParameter(
+    numSolverIterations=10)
+_pybullet_client.setTimeStep(0.05)
+#REAL
+_pybullet_client.setGravity(0, 0, -10)
 while(True):
     sys.stdout.flush()
     state = _robot_interface.receive_observation()
@@ -68,6 +79,11 @@ while(True):
     #rot_mat = np.array(rot_mat).reshape((3, 3))
     print(rot_mat)
     calibrated_acc = _accelerometer_reading + np.linalg.inv(rot_mat) @ np.array([0., 0., -9.8])
+
+    pybullet_ang = _pybullet_client.getEulerFromQuaternion(
+            np.array([q[1], q[2], q[3], q[0]]))
+    
+    print("pybullet rotation", pybullet_ang)
 
     print("accel_cal",calibrated_acc)
 
